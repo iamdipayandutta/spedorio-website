@@ -306,4 +306,24 @@ function createMatrixRain() {
 }
 
 // Initialize matrix rain
-createMatrixRain(); 
+createMatrixRain();
+
+// Logo hover effect
+document.addEventListener('DOMContentLoaded', () => {
+    const logoContainer = document.querySelector('.hero-logo-container');
+    
+    if (logoContainer) {
+        logoContainer.addEventListener('mousemove', (e) => {
+            const rect = e.target.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            logoContainer.style.setProperty('--mouse-x', `${x}%`);
+            logoContainer.style.setProperty('--mouse-y', `${y}%`);
+        });
+
+        logoContainer.addEventListener('mouseleave', () => {
+            logoContainer.style.setProperty('--mouse-x', '50%');
+            logoContainer.style.setProperty('--mouse-y', '50%');
+        });
+    }
+}); 

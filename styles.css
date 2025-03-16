@@ -382,200 +382,185 @@ nav {
 
 .hero-logo-container {
     position: relative;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
-    transition: all 0.5s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
 }
 
-.hero-logo {
-    width: 100%;
-    height: auto;
-    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-    position: relative;
-    z-index: 2;
-    filter: drop-shadow(0 0 20px rgba(57, 255, 20, 0.4));
-    animation: logoFloat 6s infinite ease-in-out;
+/* Multiple rotating circles */
+.hero-logo-container::before {
+    content: '';
+    position: absolute;
+    width: 110%;
+    height: 110%;
+    border: 2px solid rgba(57, 255, 20, 0.2);
+    border-radius: 50%;
+    animation: rotateBorder 20s linear infinite;
 }
 
-/* Enhanced logo effects */
-.hero-logo-container::before,
 .hero-logo-container::after {
     content: '';
     position: absolute;
-    inset: -2px;
-    background: linear-gradient(45deg, 
-        rgba(57, 255, 20, 0) 0%,
-        rgba(57, 255, 20, 0.8) 50%,
-        rgba(57, 255, 20, 0) 100%
-    );
-    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-    z-index: 1;
-    opacity: 0.3;
-    animation: borderGlow 3s infinite linear;
+    width: 120%;
+    height: 120%;
+    border: 2px solid rgba(57, 255, 20, 0.15);
+    border-radius: 50%;
+    animation: rotateBorder 20s linear infinite reverse;
 }
 
-.hero-logo-container::after {
-    inset: -3px;
-    filter: blur(15px);
-    opacity: 0.2;
-    animation: borderRotate 8s linear infinite;
-}
-
-/* Neon glow effect */
-.hero-logo-container:hover::before {
-    opacity: 0.8;
-    filter: blur(5px);
-}
-
-.hero-logo-container:hover::after {
-    opacity: 0.4;
-    filter: blur(20px);
-}
-
-.hero-logo-container:hover .hero-logo {
-    filter: drop-shadow(0 0 30px rgba(57, 255, 20, 0.8));
-    transform: scale(1.05);
-}
-
-/* Energy particles with enhanced green effect */
-.logo-energy {
+/* Atom-like orbiting stars */
+.orbit-container {
     position: absolute;
-    width: 6px;
-    height: 6px;
+    width: 140%;
+    height: 140%;
+    animation: orbitRotate 30s linear infinite;
+}
+
+.orbit-container:nth-child(2) {
+    transform: rotate(60deg);
+    animation-duration: 25s;
+}
+
+.orbit-container:nth-child(3) {
+    transform: rotate(120deg);
+    animation-duration: 35s;
+}
+
+.orbit {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 1px solid rgba(57, 255, 20, 0.1);
+    border-radius: 50%;
+}
+
+.star {
+    position: absolute;
+    width: 4px;
+    height: 4px;
     background: var(--neon-green);
     border-radius: 50%;
-    filter: blur(2px);
-    opacity: 0;
-    z-index: 3;
+    box-shadow: 0 0 10px var(--neon-green),
+                0 0 20px var(--neon-green);
+    animation: starPulse 2s ease-in-out infinite;
 }
 
-.logo-energy:nth-child(1) { top: 20%; left: -30px; animation: energyPulse 2s infinite 0s; }
-.logo-energy:nth-child(2) { top: 40%; right: -30px; animation: energyPulse 2s infinite 0.5s; }
-.logo-energy:nth-child(3) { bottom: 30%; left: -30px; animation: energyPulse 2s infinite 1s; }
-.logo-energy:nth-child(4) { bottom: 50%; right: -30px; animation: energyPulse 2s infinite 1.5s; }
+.star:nth-child(1) { top: 50%; left: -2px; }
+.star:nth-child(2) { top: -2px; left: 50%; }
+.star:nth-child(3) { top: 50%; right: -2px; }
+.star:nth-child(4) { bottom: -2px; left: 50%; }
 
-/* Matrix-style circuit lines */
-.logo-circuit {
+/* Inner rotating circles */
+.circle-inner {
     position: absolute;
-    background: linear-gradient(90deg, 
-        transparent,
-        rgba(57, 255, 20, 0.8),
-        transparent
-    );
-    opacity: 0;
-    z-index: 1;
+    width: 105%;
+    height: 105%;
+    border: 1px solid rgba(57, 255, 20, 0.2);
+    border-radius: 50%;
+    animation: rotateBorder 15s linear infinite;
 }
 
-.logo-circuit-h {
-    height: 2px;
-    width: 60px;
+.circle-outer {
+    position: absolute;
+    width: 130%;
+    height: 130%;
+    border: 1px solid rgba(57, 255, 20, 0.1);
+    border-radius: 50%;
+    animation: rotateBorder 25s linear infinite reverse;
 }
 
-.logo-circuit-v {
-    width: 2px;
-    height: 60px;
-}
-
-/* Updated animations */
-@keyframes energyPulse {
-    0% {
-        transform: translateX(0) scale(1);
-        opacity: 0;
-    }
-    50% {
-        transform: translateX(40px) scale(2);
-        opacity: 0.8;
-    }
-    100% {
-        transform: translateX(80px) scale(1);
-        opacity: 0;
-    }
-}
-
-@keyframes borderGlow {
-    0%, 100% {
-        opacity: 0.3;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.6;
-        transform: scale(1.02);
-    }
-}
-
-@keyframes borderRotate {
-    0% {
+@keyframes rotateBorder {
+    from {
         transform: rotate(0deg);
     }
-    100% {
+    to {
         transform: rotate(360deg);
     }
 }
 
-@keyframes logoFloat {
+@keyframes orbitRotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes starPulse {
     0%, 100% {
-        transform: translateY(0) scale(1);
-        filter: drop-shadow(0 0 20px rgba(57, 255, 20, 0.4));
+        transform: scale(1);
+        opacity: 0.8;
     }
     50% {
-        transform: translateY(-20px) scale(1.02);
-        filter: drop-shadow(0 0 30px rgba(57, 255, 20, 0.8));
+        transform: scale(1.5);
+        opacity: 1;
     }
 }
 
-/* Matrix rain effect */
-.matrix-rain {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 1;
+.hero-logo {
+    width: 700px;
+    height: auto;
+    position: relative;
+    z-index: 2;
+    animation: smoothLogoFloat 6s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: center center;
 }
 
-.matrix-drop {
-    position: absolute;
-    width: 2px;
-    background: linear-gradient(
-        180deg,
-        transparent,
-        var(--neon-green)
-    );
-    animation: matrixRain 2s infinite linear;
-    opacity: 0;
-}
-
-@keyframes matrixRain {
-    0% {
-        transform: translateY(-100%);
-        opacity: 0;
-    }
-    50% {
-        opacity: 0.5;
-    }
-    100% {
-        transform: translateY(100%);
-        opacity: 0;
-    }
-}
-
-/* Enhance text effects */
+/* Text animations */
 .name {
     font-size: 6rem;
     font-weight: bold;
-    color: var(--neon-green);
-    text-shadow: 0 0 20px rgba(57, 255, 20, 0.5);
-    animation: textGlow 3s infinite ease-in-out;
+    position: relative;
+    color: transparent;
+    background: linear-gradient(
+        45deg,
+        var(--neon-green) 0%,
+        #ffffff 50%,
+        var(--neon-green) 100%
+    );
+    background-size: 200% auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: textGradient 4s linear infinite;
+    text-shadow: 
+        0 0 20px rgba(57, 255, 20, 0.5),
+        0 0 40px rgba(57, 255, 20, 0.3),
+        0 0 60px rgba(57, 255, 20, 0.1);
 }
 
-@keyframes textGlow {
-    0%, 100% {
-        text-shadow: 0 0 20px rgba(57, 255, 20, 0.5);
-        transform: scale(1);
+.name::after {
+    content: 'DIPAYAN';
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: rgba(57, 255, 20, 0.1);
+    z-index: -1;
+    animation: textGhost 8s infinite ease-in-out;
+}
+
+@keyframes textGradient {
+    0% {
+        background-position: 0% center;
     }
-    50% {
-        text-shadow: 0 0 30px rgba(57, 255, 20, 0.8);
-        transform: scale(1.02);
+    100% {
+        background-position: 200% center;
+    }
+}
+
+@keyframes textGhost {
+    0%, 100% {
+        transform: translateX(0) skew(0deg);
+        opacity: 0.1;
+    }
+    25% {
+        transform: translateX(10px) skew(-10deg);
+        opacity: 0.3;
+    }
+    75% {
+        transform: translateX(-10px) skew(10deg);
+        opacity: 0.3;
     }
 }
 
@@ -583,12 +568,32 @@ h1 {
     font-size: 2.8rem;
     color: #ffffff;
     margin-bottom: 1rem;
+    opacity: 0;
+    transform: translateY(-20px);
+    animation: fadeInDown 1s forwards ease-out;
 }
 
 .subtitle {
     font-size: 1.4rem;
     color: rgba(255, 255, 255, 0.7);
     margin-bottom: 2rem;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 1s 0.3s forwards ease-out;
+}
+
+@keyframes fadeInDown {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .social-links {
