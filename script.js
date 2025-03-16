@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Animate name and logo
     const name = document.querySelector('.name');
-    const logo = document.querySelector('.logo-circle');
+    const logo = document.querySelector('.hero-logo');
     
     if (name) {
         name.style.opacity = '0';
@@ -74,11 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (logo) {
         logo.style.opacity = '0';
-        logo.style.transform = 'scale(0.8)';
+        logo.style.transform = 'translateY(-20px)';
         setTimeout(() => {
             logo.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
             logo.style.opacity = '1';
-            logo.style.transform = 'scale(1)';
+            logo.style.transform = 'translateY(0)';
         }, 100);
     }
     
@@ -286,4 +286,24 @@ document.addEventListener('DOMContentLoaded', () => {
     sections.forEach(section => {
         sectionObserver.observe(section);
     });
-}); 
+});
+
+// Create matrix rain effect
+function createMatrixRain() {
+    const matrixContainer = document.querySelector('.matrix-rain');
+    if (!matrixContainer) return;
+
+    const numberOfDrops = 20;
+    
+    for (let i = 0; i < numberOfDrops; i++) {
+        const drop = document.createElement('div');
+        drop.className = 'matrix-drop';
+        drop.style.left = `${Math.random() * 100}%`;
+        drop.style.animationDelay = `${Math.random() * 2}s`;
+        drop.style.height = `${Math.random() * 30 + 10}px`;
+        matrixContainer.appendChild(drop);
+    }
+}
+
+// Initialize matrix rain
+createMatrixRain(); 
