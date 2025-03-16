@@ -288,6 +288,7 @@ def delete_category(id):
     flash('Category deleted successfully!')
     return redirect(url_for('admin_categories'))
 
+# Run the app
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

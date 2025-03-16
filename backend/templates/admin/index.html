@@ -1,0 +1,46 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mt-4">Welcome to the Admin Dashboard</h1>
+            <p class="lead">Manage your blog content from here.</p>
+            
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Posts</h5>
+                            <p class="card-text">Manage your blog posts.</p>
+                            <a href="{{ url_for('admin_posts') }}" class="btn btn-primary">View Posts</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Categories</h5>
+                            <p class="card-text">Manage your blog categories.</p>
+                            <a href="{{ url_for('admin_categories') }}" class="btn btn-primary">View Categories</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">API</h5>
+                            <p class="card-text">Access your blog API.</p>
+                            <a href="{{ url_for('get_posts') }}" class="btn btn-primary" target="_blank">View API</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

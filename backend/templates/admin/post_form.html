@@ -1,0 +1,98 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}{% if post %}Edit Post{% else %}New Post{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mt-4">{% if post %}Edit Post{% else %}New Post{% endif %}</h1>
+            <p class="lead">{% if post %}Edit the details of your post.{% else %}Create a new blog post.{% endif %}</p>
+            
+            <div class="mb-4">
+                <a href="{{ url_for('admin_posts') }}" class="btn btn-secondary">Back to Posts</a>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Post Form</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="title" name="title" value="{{ post.title if post else '' }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="slug" class="form-label">Slug</label>
+                            <input type="text" class="form-control" id="slug" name="slug" value="{{ post.slug if post else '' }}" required>
+                            <small class="text-muted">URL-friendly version of the title (e.g., "my-blog-post")</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="category_id" class="form-label">Category</label>
+                            <select class="form-select" id="category_id" name="category_id" required>
+                                <option value="">Select a category</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}" {% if post and post.category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="summary" class="form-label">Summary</label>
+                            <textarea class="form-control" id="summary" name="summary" rows="3">{{ post.summary if post else '' }}</textarea>
+                            <small class="text-muted">A brief summary of the post (max 300 characters)</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="content" class="form-label">Content</label>
+                            <textarea class="form-control" id="content" name="content" rows="10" required>{{ post.content if post else '' }}</textarea>
+                            <small class="text-muted">Supports Markdown formatting</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="featured_image" class="form-label">Featured Image</label>
+                            <input type="file" class="form-control" id="featured_image" name="featured_image">
+                            {% if post and post.featured_image %}
+                            <div class="mt-2">
+                                <img src="{{ url_for('static', filename='uploads/' + post.featured_image) }}" alt="Featured Image" class="img-thumbnail" style="max-height: 200px;">
+                                <p class="text-muted">Current image: {{ post.featured_image }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="read_time" class="form-label">Read Time (minutes)</label>
+                            <input type="number" class="form-control" id="read_time" name="read_time" value="{{ post.read_time if post else 5 }}" min="1" required>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="published" name="published" {% if post and post.published %}checked{% endif %}>
+                            <label class="form-check-label" for="published">Published</label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-generate slug from title
+    document.getElementById('title').addEventListener('input', function() {
+        const title = this.value;
+        const slug = title.toLowerCase()
+            .replace(/[^\w\s-]/g, '') // Remove special characters
+            .replace(/\s+/g, '-')     // Replace spaces with hyphens
+            .replace(/-+/g, '-');     // Replace multiple hyphens with single hyphen
+        
+        document.getElementById('slug').value = slug;
+    });
+</script>
+{% endblock %} 
