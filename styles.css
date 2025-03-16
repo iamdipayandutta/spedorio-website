@@ -386,6 +386,7 @@ nav {
     justify-content: center;
     align-items: center;
     padding: 40px;
+    perspective: 1000px;
 }
 
 /* Multiple rotating circles */
@@ -506,6 +507,45 @@ nav {
     z-index: 2;
     animation: smoothLogoFloat 6s infinite cubic-bezier(0.4, 0, 0.2, 1);
     transform-origin: center center;
+    transition: transform 0.2s ease-out, filter 0.3s ease;
+    transform-style: preserve-3d;
+    will-change: transform;
+    filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.2));
+}
+
+.hero-logo-container:hover .hero-logo {
+    filter: brightness(1.2) drop-shadow(0 20px 30px rgba(0, 0, 0, 0.5));
+    animation-play-state: paused;
+}
+
+.hero-logo-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.3s ease;
+    perspective: 1000px;
+}
+
+/* Add mouse movement tracking for 3D effect */
+.hero-logo-container::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+        circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(57, 255, 20, 0.2) 0%,
+        transparent 60%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.hero-logo-container:hover::before {
+    opacity: 1;
 }
 
 /* Text animations */

@@ -311,19 +311,33 @@ createMatrixRain();
 // Logo hover effect
 document.addEventListener('DOMContentLoaded', () => {
     const logoContainer = document.querySelector('.hero-logo-container');
+    const logo = document.querySelector('.hero-logo');
     
-    if (logoContainer) {
+    if (logoContainer && logo) {
         logoContainer.addEventListener('mousemove', (e) => {
-            const rect = e.target.getBoundingClientRect();
+            const rect = logoContainer.getBoundingClientRect();
             const x = ((e.clientX - rect.left) / rect.width) * 100;
             const y = ((e.clientY - rect.top) / rect.height) * 100;
+            
+            // Set CSS variables for the gradient effect
             logoContainer.style.setProperty('--mouse-x', `${x}%`);
             logoContainer.style.setProperty('--mouse-y', `${y}%`);
+            
+            // Calculate 3D rotation based on mouse position
+            const rotateY = 20 * ((x / 100) - 0.5);
+            const rotateX = -20 * ((y / 100) - 0.5);
+            
+            // Apply 3D transform to logo
+            logo.style.transform = `perspective(1000px) rotateY(${rotateY}deg) rotateX(${rotateX}deg) translateZ(20px)`;
         });
 
         logoContainer.addEventListener('mouseleave', () => {
+            // Reset CSS variables
             logoContainer.style.setProperty('--mouse-x', '50%');
             logoContainer.style.setProperty('--mouse-y', '50%');
+            
+            // Reset logo transform
+            logo.style.transform = 'perspective(1000px) rotateY(0deg) rotateX(0deg) translateZ(0)';
         });
     }
 }); 
