@@ -509,25 +509,112 @@ nav {
 }
 
 /* Text animations */
+.name-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    margin-bottom: 1rem;
+}
+
 .name {
     font-size: 6rem;
     font-weight: bold;
+    color: var(--neon-green);
+    text-shadow: 0 0 10px rgba(57, 255, 20, 0.5),
+                 0 0 20px rgba(57, 255, 20, 0.3),
+                 0 0 30px rgba(57, 255, 20, 0.1);
     position: relative;
-    color: transparent;
-    background: linear-gradient(
-        45deg,
-        var(--neon-green) 0%,
-        #ffffff 50%,
-        var(--neon-green) 100%
-    );
-    background-size: 200% auto;
-    background-clip: text;
-    -webkit-background-clip: text;
-    animation: textGradient 4s linear infinite;
-    text-shadow: 
-        0 0 20px rgba(57, 255, 20, 0.5),
-        0 0 40px rgba(57, 255, 20, 0.3),
-        0 0 60px rgba(57, 255, 20, 0.1);
+    display: inline-block;
+    width: fit-content;
+}
+
+.surname {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #ffffff;
+    opacity: 0.8;
+    position: relative;
+    display: inline-block;
+    width: fit-content;
+    margin-left: 5px;
+    margin-top: -10px;
+    line-height: 1;
+}
+
+/* Typing animation for name */
+.name::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    top: 10%;
+    width: 3px;
+    height: 80%;
+    background-color: var(--neon-green);
+    animation: cursorBlink 0.8s infinite;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.name:hover::after {
+    opacity: 1;
+}
+
+/* Typing animation for surname */
+.surname::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    top: 10%;
+    width: 3px;
+    height: 80%;
+    background-color: #ffffff;
+    animation: cursorBlink 0.8s infinite;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.surname:hover::after {
+    opacity: 1;
+}
+
+@keyframes cursorBlink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
+}
+
+/* Enhanced text effects */
+.name {
+    animation: textGlow 3s infinite ease-in-out;
+}
+
+.name:hover {
+    text-shadow: 0 0 20px rgba(57, 255, 20, 0.8),
+                 0 0 30px rgba(57, 255, 20, 0.6),
+                 0 0 40px rgba(57, 255, 20, 0.4);
+}
+
+.surname:hover {
+    opacity: 1;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.4),
+                 0 0 30px rgba(255, 255, 255, 0.2);
+}
+
+@keyframes textGlow {
+    0%, 100% {
+        text-shadow: 0 0 10px rgba(57, 255, 20, 0.5),
+                    0 0 20px rgba(57, 255, 20, 0.3),
+                    0 0 30px rgba(57, 255, 20, 0.1);
+    }
+    50% {
+        text-shadow: 0 0 15px rgba(57, 255, 20, 0.6),
+                    0 0 25px rgba(57, 255, 20, 0.4),
+                    0 0 35px rgba(57, 255, 20, 0.2);
+    }
 }
 
 .name::after {
@@ -567,10 +654,18 @@ nav {
 h1 {
     font-size: 2.8rem;
     color: #ffffff;
-    margin-bottom: 1rem;
+    margin-bottom: 0.8rem;
     opacity: 0;
     transform: translateY(-20px);
     animation: fadeInDown 1s forwards ease-out;
+}
+
+.name-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    margin-bottom: 1rem;
 }
 
 .subtitle {
@@ -580,6 +675,7 @@ h1 {
     opacity: 0;
     transform: translateY(20px);
     animation: fadeInUp 1s 0.3s forwards ease-out;
+    margin-top: 1rem;
 }
 
 @keyframes fadeInDown {
@@ -805,6 +901,9 @@ footer {
     .name {
         font-size: 5rem;
     }
+    .surname {
+        font-size: 2.5rem;
+    }
 
     h1 {
         font-size: 2.4rem;
@@ -834,6 +933,9 @@ footer {
     .name {
         font-size: 4.2rem;
     }
+    .surname {
+        font-size: 2.1rem;
+    }
 
     h1 {
         font-size: 2.2rem;
@@ -857,6 +959,9 @@ footer {
 
     .name {
         font-size: 3.2rem;
+    }
+    .surname {
+        font-size: 1.6rem;
     }
 
     h1 {
