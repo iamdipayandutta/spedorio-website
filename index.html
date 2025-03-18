@@ -99,112 +99,120 @@
             <div class="sidebar-logo">
                 <img src="assets\PicsArt_10-07-11.10.16.png" alt="Dipayan Logo" class="sidebar-logo-img">
             </div>
-            <button class="close-sidebar">
+            <div class="sidebar-close" id="closeSidebar">
                 <i class="fas fa-times"></i>
+            </div>
+        </div>
+        
+        <div class="sidebar-section">
+            <h3>Navigation</h3>
+            <ul>
+                <li>
+                    <a href="#" class="sidebar-link active" data-section="home">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                        <i class="fas fa-chevron-right nav-arrow"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-section="about">
+                        <i class="fas fa-user"></i>
+                        <span>About</span>
+                        <i class="fas fa-chevron-right nav-arrow"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-section="blog">
+                        <i class="fas fa-blog"></i>
+                        <span>Blog</span>
+                        <i class="fas fa-chevron-right nav-arrow"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-section="contact">
+                        <i class="fas fa-envelope"></i>
+                        <span>Contact</span>
+                        <i class="fas fa-chevron-right nav-arrow"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="sidebar-section">
+            <h3>Account</h3>
+            <ul>
+                <li>
+                    <a href="/login" class="sidebar-link">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Login</span>
+                        <i class="fas fa-chevron-right nav-arrow"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="/signup" class="sidebar-link">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Sign Up</span>
+                        <i class="fas fa-chevron-right nav-arrow"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="sidebar-section">
+            <h3>Blog Categories</h3>
+            <ul>
+                <li>
+                    <a href="#" class="active">
+                        <div class="category-indicator"></div>
+                        <div class="link-content">
+                            <i class="fas fa-code"></i>
+                            Web Development
+                        </div>
+                        <i class="fas fa-chevron-right nav-arrow"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <div class="category-indicator"></div>
+                        <div class="link-content">
+                            <i class="fas fa-paint-brush"></i>
+                            UI/UX Design
+                        </div>
+                        <i class="fas fa-chevron-right nav-arrow"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <div class="category-indicator"></div>
+                        <div class="link-content">
+                            <i class="fas fa-lightbulb"></i>
+                            Innovation
+                        </div>
+                        <i class="fas fa-chevron-right nav-arrow"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="nav-controls">
+            <button class="nav-button" id="prevCategory">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <button class="nav-button" id="nextCategory">
+                <i class="fas fa-arrow-right"></i>
             </button>
         </div>
-        <div class="sidebar-content">
-            <div class="sidebar-section">
-                <h3>Navigation</h3>
-                <ul>
-                    <li>
-                        <a href="#home">
-                            <div class="category-indicator"></div>
-                            <div class="link-content">
-                                <i class="fas fa-home"></i>
-                                Home
-                            </div>
-                            <i class="fas fa-chevron-right nav-arrow"></i>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#about">
-                            <div class="category-indicator"></div>
-                            <div class="link-content">
-                                <i class="fas fa-user"></i>
-                                About
-                            </div>
-                            <i class="fas fa-chevron-right nav-arrow"></i>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#blog">
-                            <div class="category-indicator"></div>
-                            <div class="link-content">
-                                <i class="fas fa-blog"></i>
-                                Blog
-                            </div>
-                            <i class="fas fa-chevron-right nav-arrow"></i>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#contact">
-                            <div class="category-indicator"></div>
-                            <div class="link-content">
-                                <i class="fas fa-envelope"></i>
-                                Contact
-                            </div>
-                            <i class="fas fa-chevron-right nav-arrow"></i>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-            <div class="sidebar-section">
-                <h3>Blog Categories</h3>
-                <ul>
-                    <li>
-                        <a href="#" class="active">
-                            <div class="category-indicator"></div>
-                            <div class="link-content">
-                                <i class="fas fa-code"></i>
-                                Web Development
-                            </div>
-                            <i class="fas fa-chevron-right nav-arrow"></i>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#">
-                            <div class="category-indicator"></div>
-                            <div class="link-content">
-                                <i class="fas fa-paint-brush"></i>
-                                UI/UX Design
-                            </div>
-                            <i class="fas fa-chevron-right nav-arrow"></i>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#">
-                            <div class="category-indicator"></div>
-                            <div class="link-content">
-                                <i class="fas fa-lightbulb"></i>
-                                Innovation
-                            </div>
-                            <i class="fas fa-chevron-right nav-arrow"></i>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-            <div class="nav-controls">
-                <button class="nav-button" id="prevCategory">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                <button class="nav-button" id="nextCategory">
-                    <i class="fas fa-arrow-right"></i>
-                </button>
-            </div>
-            <div class="sidebar-section">
-                <h3>Connect</h3>
-                <div class="sidebar-social">
-                    <a href="https://www.linkedin.com/in/iamdipayandutta/" target="_blank" class="social-btn">
-                        <i class="fab fa-linkedin"></i>
-                    </a>
-                    <a href="https://github.com/iamdipayandutta" target="_blank" class="social-btn">
-                        <i class="fab fa-github"></i>
-                    </a>
-                    <a href="https://www.youtube.com/@spedorio" target="_blank" class="social-btn">
-                        <i class="fab fa-youtube"></i>
-                    </a>
-                </div>
+        <div class="sidebar-section">
+            <h3>Connect</h3>
+            <div class="sidebar-social">
+                <a href="https://www.linkedin.com/in/iamdipayandutta/" target="_blank" class="social-btn">
+                    <i class="fab fa-linkedin"></i>
+                </a>
+                <a href="https://github.com/iamdipayandutta" target="_blank" class="social-btn">
+                    <i class="fab fa-github"></i>
+                </a>
+                <a href="https://www.youtube.com/@spedorio" target="_blank" class="social-btn">
+                    <i class="fab fa-youtube"></i>
+                </a>
             </div>
         </div>
     </div>

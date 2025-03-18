@@ -32,6 +32,8 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime)
     posts = db.relationship('Post', backref='author', lazy=True)
     
     def set_password(self, password):
@@ -88,8 +90,71 @@ def load_user(user_id):
 # Routes
 @app.route('/')
 def index():
-    # Serve the main frontend index.html located in the project root
-    return send_from_directory('../', 'index.html')
+    # Check if user is logged in
+    auth_status = {
+        'is_logged_in': 'true' if current_user.is_authenticated else 'false',
+        'username': current_user.username if current_user.is_authenticated else ''
+    }
+    
+    # Create script to inject authentication status into the frontend
+    auth_script = f"""
+    <script>
+        window.authStatus = {{
+            is_logged_in: {auth_status['is_logged_in']},
+            username: "{auth_status['username']}"
+        }};
+        
+        document.addEventListener('DOMContentLoaded', function() {{
+            const accountSection = document.querySelector('.sidebar-section:nth-child(2)');
+            if (accountSection && accountSection.querySelector('h3').textContent === 'Account') {{
+                const accountLinks = accountSection.querySelector('ul');
+                
+                if (window.authStatus.is_logged_in) {{
+                    // User is logged in
+                    accountLinks.innerHTML = `
+                        <li>
+                            <a href="/profile" class="sidebar-link">
+                                <i class="fas fa-user-circle"></i>
+                                <span>My Profile</span>
+                                <i class="fas fa-chevron-right nav-arrow"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/logout" class="sidebar-link">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Logout</span>
+                                <i class="fas fa-chevron-right nav-arrow"></i>
+                            </a>
+                        </li>
+                    `;
+                    
+                    // Add username to the sidebar
+                    const usernameElement = document.createElement('div');
+                    usernameElement.className = 'user-info';
+                    usernameElement.innerHTML = '<p>Logged in as: <strong>' + window.authStatus.username + '</strong></p>';
+                    accountSection.insertBefore(usernameElement, accountLinks);
+                }}
+            }}
+        }});
+    </script>
+    """
+    
+    # Use render_template_string to create HTML content with the auth script injected
+    try:
+        # Get the index.html content
+        with open('../index.html', 'r', encoding='utf-8') as file:
+            content = file.read()
+            
+        # Inject auth script before </body>
+        modified_content = content.replace('</body>', f'{auth_script}</body>')
+        
+        # Return the modified content with proper MIME type
+        response = app.make_response(modified_content)
+        response.mimetype = 'text/html'
+        return response
+    except Exception as e:
+        # If there's an error, fallback to the direct approach
+        return send_from_directory('../', 'index.html')
 
 @app.route('/<path:path>')
 def serve_static(path):
@@ -130,9 +195,72 @@ def get_category_posts(slug):
     posts = Post.query.filter_by(category_id=category.id, published=True).order_by(Post.created_at.desc()).all()
     return jsonify([post.to_dict() for post in posts])
 
-# Admin Routes
+# User authentication routes
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        
+        # Validate form data
+        if not username or not email or not password or not confirm_password:
+            flash('All fields are required', 'danger')
+            return render_template('auth/signup.html')
+        
+        if password != confirm_password:
+            flash('Passwords do not match', 'danger')
+            return render_template('auth/signup.html')
+        
+        # Check if user already exists
+        existing_user = User.query.filter((User.username == username) | (User.email == email)).first()
+        if existing_user:
+            flash('Username or email already exists', 'danger')
+            return render_template('auth/signup.html')
+        
+        # Create new user
+        new_user = User(username=username, email=email)
+        new_user.set_password(password)
+        
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('Account created successfully! You can now log in.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('auth/signup.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def public_login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        remember = 'remember' in request.form
+        
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            # Update last login time
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            
+            login_user(user, remember=remember)
+            next_page = request.args.get('next')
+            return redirect(next_page if next_page else url_for('index'))
+        else:
+            flash('Invalid username or password', 'danger')
+    
+    return render_template('auth/login.html')
+
+# Now update the existing admin login route
 @app.route('/admin/login', methods=['GET', 'POST'])
-def login():
+def admin_login():
     if current_user.is_authenticated:
         return redirect(url_for('admin_dashboard'))
     
@@ -142,6 +270,10 @@ def login():
         
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
+            # Update last login time
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            
             login_user(user)
             return redirect(url_for('admin_dashboard'))
         else:
@@ -149,11 +281,18 @@ def login():
     
     return render_template('admin/login.html')
 
-@app.route('/admin/logout')
+# Update logout route to handle both public and admin logout
+@app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
+
+@app.route('/admin/logout')
+@login_required
+def admin_logout():
+    logout_user()
+    return redirect(url_for('admin_login'))
 
 @app.route('/admin/dashboard')
 @login_required
@@ -298,6 +437,56 @@ def delete_category(id):
     db.session.commit()
     flash('Category deleted successfully!')
     return redirect(url_for('admin_categories'))
+
+# Profile management routes
+@app.route('/profile')
+@login_required
+def profile():
+    return render_template('auth/profile.html')
+
+@app.route('/profile/update', methods=['POST'])
+@login_required
+def update_profile():
+    email = request.form.get('email')
+    
+    if not email:
+        flash('Email is required', 'danger')
+        return redirect(url_for('profile'))
+    
+    # Check if email already exists
+    existing_user = User.query.filter(User.email == email, User.id != current_user.id).first()
+    if existing_user:
+        flash('Email already in use by another account', 'danger')
+        return redirect(url_for('profile'))
+    
+    current_user.email = email
+    db.session.commit()
+    flash('Profile updated successfully', 'success')
+    return redirect(url_for('profile'))
+
+@app.route('/profile/change-password', methods=['POST'])
+@login_required
+def change_password():
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    
+    if not current_password or not new_password or not confirm_password:
+        flash('All fields are required', 'danger')
+        return redirect(url_for('profile'))
+    
+    if new_password != confirm_password:
+        flash('New passwords do not match', 'danger')
+        return redirect(url_for('profile'))
+    
+    if not current_user.check_password(current_password):
+        flash('Current password is incorrect', 'danger')
+        return redirect(url_for('profile'))
+    
+    current_user.set_password(new_password)
+    db.session.commit()
+    flash('Password changed successfully', 'success')
+    return redirect(url_for('profile'))
 
 # Run the app
 if __name__ == '__main__':
