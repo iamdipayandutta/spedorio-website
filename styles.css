@@ -2717,19 +2717,16 @@ section:last-child .section-indicator {
 }
 
 .track-item {
-    display: flex;
+    display: grid;
+    grid-template-columns: 30px 60px 1fr auto auto;
+    gap: 15px;
     align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    transition: all 0.3s ease;
-    cursor: pointer;
+    padding: 10px;
+    transition: background-color 0.3s ease;
 }
 
 .track-item:hover {
     background: rgba(57, 255, 20, 0.1);
-    transform: translateX(5px);
 }
 
 .track-number {
@@ -2872,4 +2869,42 @@ section:last-child .section-indicator {
 
 .show-more-btn.hidden {
     display: none;
+}
+
+.track-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.preview-btn {
+    background: var(--neon-green);
+    color: var(--dark-bg);
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+}
+
+.preview-btn:hover {
+    background: rgba(57, 255, 20, 0.8);
+    transform: scale(1.05);
+}
+
+.spotify-link {
+    color: var(--neon-green);
+    text-decoration: none;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+    padding: 5px 10px;
+    border: 1px solid var(--neon-green);
+    border-radius: 4px;
+}
+
+.spotify-link:hover {
+    background: rgba(57, 255, 20, 0.1);
+    transform: scale(1.05);
+}
 } 
