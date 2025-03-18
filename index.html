@@ -469,6 +469,72 @@
                 <div class="indicator-line"></div>
             </div>
         </section>
+
+        <section id="music-zone" class="section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-music"></i>
+                </div>
+                <h2>Music Zone</h2>
+                <p class="section-subtitle">Discover my favorite tunes and playlists</p>
+            </div>
+
+            <div class="music-container">
+                <div class="now-playing">
+                    <h3>Now Playing</h3>
+                    <div class="player-card">
+                        <div class="album-art">
+                            <img src="assets/placeholder.jpg" alt="Album Art" id="current-album-art">
+                            <div class="player-overlay">
+                                <div class="player-controls">
+                                    <button id="prev-track" onclick="previousTrack()">
+                                        <i class="fas fa-backward"></i>
+                                    </button>
+                                    <button id="toggle-play" onclick="togglePlay()">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                    <button id="next-track" onclick="nextTrack()">
+                                        <i class="fas fa-forward"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="track-info">
+                            <h4 id="current-track">Not Playing</h4>
+                            <p id="current-artist">-</p>
+                            <div class="progress-bar">
+                                <div class="progress" id="track-progress"></div>
+                            </div>
+                            <div class="time-info">
+                                <span id="current-time">0:00</span>
+                                <span id="total-time">0:00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="playlists-section">
+                    <h3>My Playlists</h3>
+                    <div class="playlists-grid" id="playlists-container">
+                        <!-- Playlists will be loaded here -->
+                    </div>
+                </div>
+
+                <div class="top-tracks-section">
+                    <h3>Top Tracks</h3>
+                    <div class="tracks-list" id="top-tracks-container">
+                        <!-- Top tracks will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="spotify-login" id="spotify-login">
+                <p>Connect with Spotify to access music features</p>
+                <button onclick="authenticateSpotify()" class="spotify-auth-btn">
+                    <i class="fab fa-spotify"></i> Connect Spotify
+                </button>
+            </div>
+        </section>
     </main>
 
     <footer>
@@ -480,5 +546,6 @@
     </footer>
 
     <script src="script.js"></script>
+    <script src="scripts/spotify.js"></script>
 </body>
 </html> 

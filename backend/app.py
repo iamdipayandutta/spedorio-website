@@ -548,6 +548,31 @@ def user_dashboard():
                           recent_posts=recent_posts,
                           categories=categories)
 
+# Spotify callback route
+@app.route('/callback')
+def spotify_callback():
+    try:
+        # Get the index.html content
+        with open('../index.html', 'r', encoding='utf-8') as file:
+            content = file.read()
+            
+        # Replace relative paths with absolute paths
+        content = content.replace('href="styles.css"', 'href="/styles.css"')
+        content = content.replace('src="assets/', 'src="/assets/')
+        content = content.replace('src="scripts/', 'src="/scripts/')
+        
+        # Return the modified content with proper MIME type
+        response = app.make_response(content)
+        response.mimetype = 'text/html'
+        return response
+    except Exception as e:
+        print(f"Error in spotify_callback: {e}")
+        return redirect('/')
+
+@app.route('/scripts/<path:filename>')
+def serve_scripts(filename):
+    return send_from_directory('../scripts', filename)
+
 # Run the app
 if __name__ == '__main__':
     with app.app_context():
