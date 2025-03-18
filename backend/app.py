@@ -412,23 +412,47 @@ def admin_required(f):
 @admin_required
 def edit_post(post_id):
     post = Post.query.get_or_404(post_id)
+    categories = Category.query.all()
+    
     if request.method == 'POST':
         post.title = request.form.get('title')
+        post.slug = request.form.get('slug')
         post.content = request.form.get('content')
         post.summary = request.form.get('summary')
+        post.category_id = request.form.get('category_id')
+        post.read_time = request.form.get('read_time', 5)
+        post.published = 'published' in request.form
+        
+        # Handle image upload
+        if 'featured_image' in request.files:
+            file = request.files['featured_image']
+            if file.filename:
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                post.featured_image = filename
+        
         db.session.commit()
         flash('Post updated successfully!', 'success')
-        return redirect(url_for('index'))
-    return render_template('admin/edit_post.html', post=post)
+        return redirect(url_for('admin_posts'))
+        
+    return render_template('admin/post_form.html', post=post, categories=categories)
 
-@app.route('/admin/posts/delete/<int:id>', methods=['POST'])
+@app.route('/admin/posts/<int:post_id>/edit')
 @login_required
-def delete_post(id):
-    post = Post.query.get_or_404(id)
-    db.session.delete(post)
-    db.session.commit()
-    flash('Post deleted successfully!')
-    return redirect(url_for('admin_posts'))
+@admin_required
+def frontend_edit_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    return redirect(url_for('edit_post', post_id=post.id))
+
+@app.route('/admin/posts/<int:post_id>/delete', methods=['POST'])
+@login_required
+def delete_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if current_user.is_admin:
+        db.session.delete(post)
+        db.session.commit()
+        flash('Post deleted successfully.', 'success')
+    return redirect(url_for('manage_posts'))
 
 @app.route('/admin/categories')
 @login_required
