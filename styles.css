@@ -2603,7 +2603,7 @@ section:last-child .section-indicator {
     height: 50px;
     border-radius: 50%;
     border: none;
-    background: rgba(57, 255, 20, 0.2);
+    background: rgba(57, 255, 20, 0.1);
     color: var(--neon-green);
     font-size: 1.2rem;
     cursor: pointer;
@@ -2617,6 +2617,11 @@ section:last-child .section-indicator {
     background: var(--neon-green);
     color: var(--dark-bg);
     transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(57, 255, 20, 0.3);
+}
+
+.player-controls button:active {
+    transform: scale(0.95);
 }
 
 .track-info {
@@ -2673,7 +2678,7 @@ section:last-child .section-indicator {
 
 .playlist-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(57, 255, 20, 0.2);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
 }
 
 .playlist-art {
@@ -2821,4 +2826,50 @@ section:last-child .section-indicator {
         height: 40px;
         font-size: 1rem;
     }
+}
+
+/* Music Zone Styles */
+.playlists-container {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.playlists-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+    max-height: 600px; /* This will show approximately 2 rows */
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+}
+
+.playlists-grid.show-all {
+    max-height: none;
+}
+
+.show-more-btn {
+    display: block;
+    width: 200px;
+    margin: 2rem auto 0;
+    padding: 1rem 2rem;
+    background: rgba(57, 255, 20, 0.1);
+    border: 1px solid var(--neon-green);
+    color: var(--neon-green);
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.show-more-btn:hover {
+    background: var(--neon-green);
+    color: var(--dark-bg);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(57, 255, 20, 0.2);
+}
+
+.show-more-btn.hidden {
+    display: none;
 } 

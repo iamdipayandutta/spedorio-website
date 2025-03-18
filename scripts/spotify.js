@@ -1,7 +1,41 @@
 // Spotify API Configuration
 const clientId = '408562e3abcb4163bdff3f081a57f7c0'; // Your Spotify Client ID
 const redirectUri = 'http://localhost:5000/callback'; // Changed to localhost since that's where Flask is running
-const scope = 'user-read-private user-read-email user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private';
+const scope = 'user-read-private user-read-email user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private streaming';
+
+// Load Spotify Web Playback SDK
+window.onSpotifyWebPlaybackSDKReady = () => {
+    const player = new Spotify.Player({
+        name: 'Spedorio Music Player',
+        getOAuthToken: cb => { cb(accessToken); }
+    });
+
+    // Error handling
+    player.addListener('initialization_error', ({ message }) => { console.error(message); });
+    player.addListener('authentication_error', ({ message }) => { console.error(message); });
+    player.addListener('account_error', ({ message }) => { console.error(message); });
+    player.addListener('playback_error', ({ message }) => { console.error(message); });
+
+    // Playback status updates
+    player.addListener('player_state_changed', state => {
+        if (state) {
+            updatePlayerUI({
+                item: state.track_window.current_track,
+                is_playing: !state.paused,
+                progress_ms: state.position
+            });
+        }
+    });
+
+    // Ready
+    player.addListener('ready', ({ device_id }) => {
+        console.log('Ready with Device ID', device_id);
+        localStorage.setItem('spotify_device_id', device_id);
+    });
+
+    // Connect to the player
+    player.connect();
+};
 
 // Spotify API endpoints
 const SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/authorize';
@@ -137,10 +171,41 @@ async function loadTopTracks() {
 // Playback Controls
 async function togglePlayback() {
     try {
-        const state = isPlaying ? 'pause' : 'play';
-        await spotifyFetch(`/me/player/${state}`, { method: 'PUT' });
-        isPlaying = !isPlaying;
+        if (!accessToken) throw new Error('No access token');
+        const deviceId = localStorage.getItem('spotify_device_id');
+        if (!deviceId) throw new Error('No device ID available');
+
+        // Get current playback state
+        const response = await fetch(`${SPOTIFY_API_BASE}/me/player`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to get playback state');
+        }
+
+        const data = await response.json();
+        const isCurrentlyPlaying = data?.is_playing;
+
+        // Send play/pause command based on current state
+        const endpoint = isCurrentlyPlaying ? '/me/player/pause' : '/me/player/play';
+        await spotifyFetch(endpoint, {
+            method: 'PUT',
+            body: JSON.stringify({
+                device_id: deviceId
+            })
+        });
+
+        // Update UI
+        isPlaying = !isCurrentlyPlaying;
         updatePlayPauseButton();
+        
+        // If we're starting playback, start progress updates
+        if (!isCurrentlyPlaying) {
+            startProgressUpdate();
+        }
     } catch (error) {
         console.error('Error toggling playback:', error);
         handleError(error);
@@ -149,12 +214,91 @@ async function togglePlayback() {
 
 async function skipTrack(direction) {
     try {
-        await spotifyFetch(`/me/player/${direction}`, { method: 'POST' });
+        if (!accessToken) throw new Error('No access token');
+
+        // Send skip command
+        await spotifyFetch(`/me/player/${direction}`, {
+            method: 'POST'
+        });
+
+        // Wait a short moment for the skip to take effect
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Update the player UI with new track
         await getCurrentPlayback();
     } catch (error) {
         console.error('Error skipping track:', error);
         handleError(error);
     }
+}
+
+// Playlist and Track Controls
+async function loadPlaylist(playlistId) {
+    try {
+        // Get playlist tracks
+        const data = await spotifyFetch(`/playlists/${playlistId}/tracks`);
+        if (data.items && data.items.length > 0) {
+            // Start playing the first track
+            const firstTrack = data.items[0].track;
+            await playTrack(firstTrack.uri);
+            
+            // Update the tracks list with playlist tracks
+            updatePlaylistTracksUI(data.items);
+        }
+    } catch (error) {
+        console.error('Error loading playlist:', error);
+        handleError(error);
+    }
+}
+
+async function playTrack(trackUri) {
+    try {
+        const deviceId = localStorage.getItem('spotify_device_id');
+        if (!deviceId) throw new Error('No device ID available');
+
+        await spotifyFetch('/me/player/play', {
+            method: 'PUT',
+            body: JSON.stringify({
+                uris: [trackUri],
+                device_id: deviceId
+            })
+        });
+        isPlaying = true;
+        updatePlayPauseButton();
+        await getCurrentPlayback();
+    } catch (error) {
+        console.error('Error playing track:', error);
+        handleError(error);
+    }
+}
+
+function updatePlaylistTracksUI(tracks) {
+    const tracksList = document.querySelector('.tracks-list');
+    if (!tracksList) return;
+
+    tracksList.innerHTML = tracks.map((item, index) => {
+        const track = item.track;
+        return `
+            <div class="track-item" data-track-uri="${track.uri}">
+                <span class="track-number">${index + 1}</span>
+                <div class="track-thumbnail">
+                    <img src="${track.album.images[track.album.images.length - 1]?.url || '/assets/default-playlist.png'}" 
+                         alt="${track.name}"
+                         onerror="this.src='/assets/default-playlist.png'">
+                </div>
+                <div class="track-details">
+                    <h4>${track.name}</h4>
+                    <p>${track.artists.map(artist => artist.name).join(', ')}</p>
+                </div>
+                <span class="track-duration">${formatDuration(track.duration_ms)}</span>
+            </div>
+        `;
+    }).join('');
+
+    // Add click handlers for tracks
+    tracksList.querySelectorAll('.track-item').forEach(item => {
+        item.addEventListener('click', () => playTrack(item.dataset.trackUri));
+    });
 }
 
 // UI Updates
@@ -186,7 +330,8 @@ function updatePlayerUI(data) {
 
 function updatePlaylistsUI(playlists) {
     const playlistsGrid = document.querySelector('.playlists-grid');
-    if (!playlistsGrid) return;
+    const showMoreBtn = document.querySelector('.show-more-btn');
+    if (!playlistsGrid || !showMoreBtn) return;
 
     playlistsGrid.innerHTML = playlists.map(playlist => `
         <div class="playlist-card" data-playlist-id="${playlist.id}">
@@ -200,9 +345,25 @@ function updatePlaylistsUI(playlists) {
         </div>
     `).join('');
 
-    // Add click handlers
+    // Add click handlers for playlists
     playlistsGrid.querySelectorAll('.playlist-card').forEach(card => {
-        card.addEventListener('click', () => loadPlaylist(card.dataset.playlistId));
+        card.addEventListener('click', async () => {
+            // Remove active class from all cards
+            playlistsGrid.querySelectorAll('.playlist-card').forEach(c => c.classList.remove('active'));
+            // Add active class to clicked card
+            card.classList.add('active');
+            await loadPlaylist(card.dataset.playlistId);
+        });
+    });
+
+    // Show/hide show more button based on playlist count
+    const shouldShowButton = playlists.length > 8;
+    showMoreBtn.classList.toggle('hidden', !shouldShowButton);
+
+    // Add click handler for show more button
+    showMoreBtn.addEventListener('click', () => {
+        playlistsGrid.classList.toggle('show-all');
+        showMoreBtn.textContent = playlistsGrid.classList.contains('show-all') ? 'Show Less' : 'Show More Playlists';
     });
 }
 
@@ -261,6 +422,8 @@ function updatePlayPauseButton() {
     const playPauseButton = document.querySelector('.play-pause-btn');
     if (playPauseButton) {
         playPauseButton.innerHTML = isPlaying ? '⏸️' : '▶️';
+        // Add aria-label for accessibility
+        playPauseButton.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
     }
 }
 
