@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_wtf.csrf import CSRFProtect
+from functools import wraps
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -25,7 +26,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 CORS(app)  # Enable CORS for API endpoints
 login_manager = LoginManager(app)
-login_manager.login_view = 'public_login'
+login_manager.login_view = 'login'
 csrf = CSRFProtect(app)
 
 # Models
@@ -36,6 +37,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
+    is_admin = db.Column(db.Boolean, default=False)
     posts = db.relationship('Post', backref='author', lazy=True)
     
     def set_password(self, password):
@@ -92,10 +94,16 @@ def load_user(user_id):
 # Routes
 @app.route('/')
 def index():
-    # Check if user is logged in
+    # Check if user is logged in and is admin
+    is_admin = current_user.is_authenticated and current_user.is_admin and current_user.username == 'admin'
+    
+    # Store admin status in session
+    session['is_admin'] = is_admin
+    
     auth_status = {
         'is_logged_in': 'true' if current_user.is_authenticated else 'false',
-        'username': current_user.username if current_user.is_authenticated else ''
+        'username': current_user.username if current_user.is_authenticated else '',
+        'is_admin': 'true' if is_admin else 'false'
     }
     
     # Create script to inject authentication status into the frontend
@@ -103,10 +111,18 @@ def index():
     <script>
         window.authStatus = {{
             is_logged_in: {auth_status['is_logged_in']},
-            username: "{auth_status['username']}"
+            username: "{auth_status['username']}",
+            is_admin: {auth_status['is_admin']}
         }};
         
         document.addEventListener('DOMContentLoaded', function() {{
+            // Handle edit buttons visibility
+            if (window.authStatus.is_admin && window.authStatus.username === 'admin') {{
+                document.querySelectorAll('.admin-controls').forEach(btn => {{
+                    btn.style.display = 'block';
+                }});
+            }}
+            
             // Handle sidebar account section
             const accountSection = document.querySelector('.sidebar-section:nth-child(2)');
             if (accountSection && accountSection.querySelector('h3').textContent === 'Account') {{
@@ -257,31 +273,31 @@ def signup():
         db.session.commit()
         
         flash('Account created successfully! You can now log in.', 'success')
-        return redirect(url_for('public_login'))
+        return redirect(url_for('login'))
     
     return render_template('auth/signup.html')
 
 @app.route('/login', methods=['GET', 'POST'])
-def public_login():
+def login():
     if current_user.is_authenticated:
-        return redirect(url_for('user_dashboard'))
+        return redirect(url_for('index'))
     
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        remember = 'remember' in request.form
         
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
-            # Update last login time
+            login_user(user)
             user.last_login = datetime.utcnow()
-            db.session.commit()
             
-            login_user(user, remember=remember)
-            next_page = request.args.get('next')
-            return redirect(next_page if next_page else url_for('user_dashboard'))
+            # Set admin status in session
+            session['is_admin'] = user.is_admin and user.username == 'admin'
+            
+            db.session.commit()
+            return redirect(url_for('index'))
         else:
-            flash('Invalid username or password', 'danger')
+            flash('Invalid username or password', 'error')
     
     return render_template('auth/login.html')
 
@@ -312,6 +328,8 @@ def admin_login():
 @app.route('/logout')
 def logout():
     logout_user()
+    # Clear admin status from session
+    session.pop('is_admin', None)
     flash('You have been logged out successfully.', 'success')
     return redirect(url_for('index'))
 
@@ -380,34 +398,28 @@ def new_post():
     
     return render_template('admin/post_form.html', categories=categories)
 
-@app.route('/admin/posts/edit/<int:id>', methods=['GET', 'POST'])
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin or current_user.username != 'admin':
+            flash('Access denied. Admin privileges required.', 'error')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/admin/edit-post/<int:post_id>', methods=['GET', 'POST'])
 @login_required
-def edit_post(id):
-    post = Post.query.get_or_404(id)
-    categories = Category.query.all()
-    
+@admin_required
+def edit_post(post_id):
+    post = Post.query.get_or_404(post_id)
     if request.method == 'POST':
         post.title = request.form.get('title')
-        post.slug = request.form.get('slug')
         post.content = request.form.get('content')
         post.summary = request.form.get('summary')
-        post.category_id = request.form.get('category_id')
-        post.read_time = request.form.get('read_time', 5)
-        post.published = 'published' in request.form
-        
-        # Handle image upload
-        if 'featured_image' in request.files:
-            file = request.files['featured_image']
-            if file.filename:
-                filename = secure_filename(file.filename)
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                post.featured_image = filename
-        
         db.session.commit()
-        flash('Post updated successfully!')
-        return redirect(url_for('admin_posts'))
-    
-    return render_template('admin/post_form.html', post=post, categories=categories)
+        flash('Post updated successfully!', 'success')
+        return redirect(url_for('index'))
+    return render_template('admin/edit_post.html', post=post)
 
 @app.route('/admin/posts/delete/<int:id>', methods=['POST'])
 @login_required
@@ -573,8 +585,46 @@ def spotify_callback():
 def serve_scripts(filename):
     return send_from_directory('../scripts', filename)
 
-# Run the app
-if __name__ == '__main__':
+# Create admin user function
+def create_admin_user():
+    try:
+        admin = User.query.filter_by(username='admin').first()
+        if not admin:
+            admin = User(
+                username='admin',
+                email='admin@example.com',
+                is_admin=True
+            )
+            admin.set_password('admin123')
+            db.session.add(admin)
+            db.session.commit()
+            print("Admin user created successfully")
+        else:
+            # Ensure existing admin user has admin privileges
+            if not admin.is_admin:
+                admin.is_admin = True
+                db.session.commit()
+                print("Existing admin user updated with admin privileges")
+    except Exception as e:
+        print(f"Error creating admin user: {e}")
+    admin = User.query.filter_by(username='admin').first()
+    if not admin:
+        admin = User(
+            username='admin',
+            email='admin@example.com',
+            is_admin=True
+        )
+        admin.set_password('admin123')
+        db.session.add(admin)
+        db.session.commit()
+
+# Create tables and admin user
+def init_db():
     with app.app_context():
         db.create_all()
+        create_admin_user()
+
+# Run the app
+if __name__ == '__main__':
+    init_db()  # Initialize database and create admin user
     app.run(debug=True) 

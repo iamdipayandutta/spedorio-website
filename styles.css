@@ -1192,6 +1192,7 @@ footer {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 .blog-card h3 {
@@ -2872,4 +2873,58 @@ section:last-child .section-indicator {
 
 .show-more-btn.hidden {
     display: none;
+}
+
+.blog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.admin-controls {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    z-index: 100;
+    display: none; /* Hidden by default */
+}
+
+.edit-btn {
+    background-color: var(--neon-green);
+    color: var(--dark-bg);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.edit-btn:hover {
+    background-color: #4dff4d;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(77, 255, 77, 0.2);
+}
+
+.edit-btn i {
+    font-size: 1rem;
+}
+
+.back-to-blog {
+    color: var(--neon-green);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+}
+
+.back-to-blog:hover {
+    color: #4dff4d;
 } 

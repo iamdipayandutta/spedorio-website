@@ -92,8 +92,8 @@
             <img src="assets\PicsArt_10-07-11.10.16.png" alt="Dipayan Logo" class="nav-logo">
         </div>
         <div class="auth-buttons">
-            <a href="/login" class="auth-btn login-btn">Login</a>
-            <a href="/signup" class="auth-btn signup-btn">Sign Up</a>
+            <a href="{{ url_for('login') }}" class="auth-btn login-btn">Login</a>
+            <a href="{{ url_for('signup') }}" class="auth-btn signup-btn">Sign Up</a>
         </div>
     </nav>
 
@@ -320,6 +320,19 @@
                             </div>
                         </div>
                         <div class="blog-content">
+                            <header class="blog-header">
+                                <a href="#" class="back-to-blog">← Back to Blog</a>
+                                <div class="admin-controls" style="display: none;">
+                                    <button class="edit-btn" onclick="window.location.href='/admin/edit-post/{{ post.id }}'">
+                                        <i class="fas fa-edit"></i> Edit Post
+                                    </button>
+                                </div>
+                                <div class="blog-meta">
+                                    <span class="category">{{ category }}</span>
+                                    <span class="date">{{ date }}</span>
+                                    <span class="read-time">{{ read_time }} min read</span>
+                                </div>
+                            </header>
                             <h3>The Future of Web Development: What's Next?</h3>
                             <p>Exploring the latest trends and technologies shaping the future of web development, from AI integration to WebAssembly.</p>
                             <div class="blog-footer">
@@ -352,6 +365,19 @@
                             </div>
                         </div>
                         <div class="blog-content">
+                            <header class="blog-header">
+                                <a href="#" class="back-to-blog">← Back to Blog</a>
+                                <div class="admin-controls" style="display: none;">
+                                    <button class="edit-btn" onclick="window.location.href='/admin/edit-post/{{ post.id }}'">
+                                        <i class="fas fa-edit"></i> Edit Post
+                                    </button>
+                                </div>
+                                <div class="blog-meta">
+                                    <span class="category">{{ category }}</span>
+                                    <span class="date">{{ date }}</span>
+                                    <span class="read-time">{{ read_time }} min read</span>
+                                </div>
+                            </header>
                             <h3>Creating User-Centric Design Experiences</h3>
                             <p>A deep dive into the principles of user-centric design and how to create interfaces that users love.</p>
                             <div class="blog-footer">
@@ -384,6 +410,19 @@
                             </div>
                         </div>
                         <div class="blog-content">
+                            <header class="blog-header">
+                                <a href="#" class="back-to-blog">← Back to Blog</a>
+                                <div class="admin-controls" style="display: none;">
+                                    <button class="edit-btn" onclick="window.location.href='/admin/edit-post/{{ post.id }}'">
+                                        <i class="fas fa-edit"></i> Edit Post
+                                    </button>
+                                </div>
+                                <div class="blog-meta">
+                                    <span class="category">{{ category }}</span>
+                                    <span class="date">{{ date }}</span>
+                                    <span class="read-time">{{ read_time }} min read</span>
+                                </div>
+                            </header>
                             <h3>Emerging Technologies in 2024</h3>
                             <p>An overview of the most exciting technological innovations and their impact on software development.</p>
                             <div class="blog-footer">

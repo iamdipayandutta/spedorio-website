@@ -527,4 +527,22 @@ function getCategoryIcon(category) {
         'Innovation': 'lightbulb'
     };
     return icons[category] || 'article';
-} 
+}
+
+// Handle admin controls visibility
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if authStatus exists and user is specifically the admin user
+    if (window.authStatus && 
+        window.authStatus.is_admin === true && 
+        window.authStatus.username === 'admin') {
+        // Show admin controls for all blog posts
+        document.querySelectorAll('.admin-controls').forEach(controls => {
+            controls.style.display = 'block';
+        });
+    } else {
+        // Hide admin controls for all other users
+        document.querySelectorAll('.admin-controls').forEach(controls => {
+            controls.style.display = 'none';
+        });
+    }
+}); 
