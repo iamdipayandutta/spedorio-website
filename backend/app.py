@@ -105,6 +105,7 @@ def index():
         }};
         
         document.addEventListener('DOMContentLoaded', function() {{
+            // Handle sidebar account section
             const accountSection = document.querySelector('.sidebar-section:nth-child(2)');
             if (accountSection && accountSection.querySelector('h3').textContent === 'Account') {{
                 const accountLinks = accountSection.querySelector('ul');
@@ -113,9 +114,9 @@ def index():
                     // User is logged in
                     accountLinks.innerHTML = `
                         <li>
-                            <a href="/profile" class="sidebar-link">
+                            <a href="/dashboard" class="sidebar-link">
                                 <i class="fas fa-user-circle"></i>
-                                <span>My Profile</span>
+                                <span>Dashboard</span>
                                 <i class="fas fa-chevron-right nav-arrow"></i>
                             </a>
                         </li>
@@ -133,6 +134,17 @@ def index():
                     usernameElement.className = 'user-info';
                     usernameElement.innerHTML = '<p>Logged in as: <strong>' + window.authStatus.username + '</strong></p>';
                     accountSection.insertBefore(usernameElement, accountLinks);
+                }}
+            }}
+            
+            // Toggle auth buttons in nav
+            const authButtons = document.querySelector('.auth-buttons');
+            if (authButtons) {{
+                if (window.authStatus.is_logged_in) {{
+                    authButtons.innerHTML = `
+                        <a href="/dashboard" class="auth-btn login-btn">Dashboard</a>
+                        <a href="/logout" class="auth-btn signup-btn">Logout</a>
+                    `;
                 }}
             }}
         }});
@@ -199,7 +211,7 @@ def get_category_posts(slug):
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('user_dashboard'))
     
     if request.method == 'POST':
         username = request.form.get('username')
@@ -230,14 +242,14 @@ def signup():
         db.session.commit()
         
         flash('Account created successfully! You can now log in.', 'success')
-        return redirect(url_for('login'))
+        return redirect(url_for('public_login'))
     
     return render_template('auth/signup.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def public_login():
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('user_dashboard'))
     
     if request.method == 'POST':
         username = request.form.get('username')
@@ -252,7 +264,7 @@ def public_login():
             
             login_user(user, remember=remember)
             next_page = request.args.get('next')
-            return redirect(next_page if next_page else url_for('index'))
+            return redirect(next_page if next_page else url_for('user_dashboard'))
         else:
             flash('Invalid username or password', 'danger')
     
@@ -283,9 +295,9 @@ def admin_login():
 
 # Update logout route to handle both public and admin logout
 @app.route('/logout')
-@login_required
 def logout():
     logout_user()
+    flash('You have been logged out successfully.', 'success')
     return redirect(url_for('index'))
 
 @app.route('/admin/logout')
@@ -487,6 +499,39 @@ def change_password():
     db.session.commit()
     flash('Password changed successfully', 'success')
     return redirect(url_for('profile'))
+
+@app.route('/dashboard')
+@login_required
+def user_dashboard():
+    # Calculate days since joined
+    if current_user.created_at:
+        delta = datetime.utcnow() - current_user.created_at
+        days_since_joined = delta.days
+    else:
+        days_since_joined = 0
+    
+    # Calculate days since last login
+    days_since_last_login = None
+    if current_user.last_login:
+        delta = datetime.utcnow() - current_user.last_login
+        if delta.days > 0:
+            days_since_last_login = delta.days
+    
+    # Get total posts count
+    total_posts = Post.query.count()
+    
+    # Get recent posts
+    recent_posts = Post.query.filter_by(published=True).order_by(Post.created_at.desc()).limit(4).all()
+    
+    # Get categories
+    categories = Category.query.all()
+    
+    return render_template('auth/dashboard.html',
+                          days_since_joined=days_since_joined,
+                          days_since_last_login=days_since_last_login,
+                          total_posts=total_posts,
+                          recent_posts=recent_posts,
+                          categories=categories)
 
 # Run the app
 if __name__ == '__main__':
