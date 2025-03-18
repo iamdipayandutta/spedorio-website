@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
@@ -88,6 +88,17 @@ def load_user(user_id):
 # Routes
 @app.route('/')
 def index():
+    # Serve the main frontend index.html located in the project root
+    return send_from_directory('../', 'index.html')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    # Serve other static files like CSS, JS, images
+    return send_from_directory('../', path)
+
+# Admin routes start at /admin
+@app.route('/admin')
+def admin_index():
     return render_template('admin/index.html')
 
 # API Routes
