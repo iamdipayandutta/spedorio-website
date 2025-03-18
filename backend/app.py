@@ -7,6 +7,7 @@ import os
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_wtf.csrf import CSRFProtect
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -24,7 +25,8 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 CORS(app)  # Enable CORS for API endpoints
 login_manager = LoginManager(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'public_login'
+csrf = CSRFProtect(app)
 
 # Models
 class User(UserMixin, db.Model):
@@ -96,6 +98,16 @@ def index():
         'username': current_user.username if current_user.is_authenticated else ''
     }
     
+    # Get any flash messages
+    flash_messages = []
+    from flask import get_flashed_messages
+    messages = get_flashed_messages(with_categories=True)
+    for category, message in messages:
+        flash_messages.append({
+            'category': category,
+            'message': message
+        })
+    
     # Create script to inject authentication status into the frontend
     auth_script = f"""
     <script>
@@ -146,6 +158,43 @@ def index():
                         <a href="/logout" class="auth-btn signup-btn">Logout</a>
                     `;
                 }}
+            }}
+            
+            // Display flash messages if any
+            if ({len(flash_messages)} > 0) {{
+                const flashContainer = document.createElement('div');
+                flashContainer.className = 'flash-container';
+                flashContainer.style.position = 'fixed';
+                flashContainer.style.top = '20px';
+                flashContainer.style.right = '20px';
+                flashContainer.style.zIndex = '9999';
+                
+                {{% for msg in flash_messages %}}
+                const flashMsg = document.createElement('div');
+                flashMsg.className = 'flash-message alert alert-{{{msg["category"]}}}';
+                flashMsg.innerHTML = '{{{msg["message"]}}}';
+                flashMsg.style.background = '{{% if msg["category"] == "success" %}}rgba(57, 255, 20, 0.1){{% else %}}rgba(255, 57, 57, 0.1){{% endif %}}';
+                flashMsg.style.color = '{{% if msg["category"] == "success" %}}#39ff14{{% else %}}#ff3939{{% endif %}}';
+                flashMsg.style.padding = '15px';
+                flashMsg.style.marginBottom = '10px';
+                flashMsg.style.borderRadius = '5px';
+                flashMsg.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+                flashContainer.appendChild(flashMsg);
+                {{% endfor %}}
+                
+                document.body.appendChild(flashContainer);
+                
+                // Auto-remove flash messages after 5 seconds
+                setTimeout(function() {{
+                    const messages = document.querySelectorAll('.flash-message');
+                    messages.forEach(function(msg) {{
+                        msg.style.opacity = '0';
+                        msg.style.transition = 'opacity 0.5s';
+                        setTimeout(function() {{
+                            msg.remove();
+                        }}, 500);
+                    }});
+                }}, 5000);
             }}
         }});
     </script>
