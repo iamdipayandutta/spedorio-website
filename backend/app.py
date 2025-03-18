@@ -98,16 +98,6 @@ def index():
         'username': current_user.username if current_user.is_authenticated else ''
     }
     
-    # Get any flash messages
-    flash_messages = []
-    from flask import get_flashed_messages
-    messages = get_flashed_messages(with_categories=True)
-    for category, message in messages:
-        flash_messages.append({
-            'category': category,
-            'message': message
-        })
-    
     # Create script to inject authentication status into the frontend
     auth_script = f"""
     <script>
@@ -149,7 +139,7 @@ def index():
                 }}
             }}
             
-            // Toggle auth buttons in nav
+            // Update auth buttons in nav
             const authButtons = document.querySelector('.auth-buttons');
             if (authButtons) {{
                 if (window.authStatus.is_logged_in) {{
@@ -157,44 +147,12 @@ def index():
                         <a href="/dashboard" class="auth-btn login-btn">Dashboard</a>
                         <a href="/logout" class="auth-btn signup-btn">Logout</a>
                     `;
+                }} else {{
+                    authButtons.innerHTML = `
+                        <a href="/login" class="auth-btn login-btn">Login</a>
+                        <a href="/signup" class="auth-btn signup-btn">Sign Up</a>
+                    `;
                 }}
-            }}
-            
-            // Display flash messages if any
-            if ({len(flash_messages)} > 0) {{
-                const flashContainer = document.createElement('div');
-                flashContainer.className = 'flash-container';
-                flashContainer.style.position = 'fixed';
-                flashContainer.style.top = '20px';
-                flashContainer.style.right = '20px';
-                flashContainer.style.zIndex = '9999';
-                
-                {{% for msg in flash_messages %}}
-                const flashMsg = document.createElement('div');
-                flashMsg.className = 'flash-message alert alert-{{{msg["category"]}}}';
-                flashMsg.innerHTML = '{{{msg["message"]}}}';
-                flashMsg.style.background = '{{% if msg["category"] == "success" %}}rgba(57, 255, 20, 0.1){{% else %}}rgba(255, 57, 57, 0.1){{% endif %}}';
-                flashMsg.style.color = '{{% if msg["category"] == "success" %}}#39ff14{{% else %}}#ff3939{{% endif %}}';
-                flashMsg.style.padding = '15px';
-                flashMsg.style.marginBottom = '10px';
-                flashMsg.style.borderRadius = '5px';
-                flashMsg.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-                flashContainer.appendChild(flashMsg);
-                {{% endfor %}}
-                
-                document.body.appendChild(flashContainer);
-                
-                // Auto-remove flash messages after 5 seconds
-                setTimeout(function() {{
-                    const messages = document.querySelectorAll('.flash-message');
-                    messages.forEach(function(msg) {{
-                        msg.style.opacity = '0';
-                        msg.style.transition = 'opacity 0.5s';
-                        setTimeout(function() {{
-                            msg.remove();
-                        }}, 500);
-                    }});
-                }}, 5000);
             }}
         }});
     </script>
@@ -206,14 +164,22 @@ def index():
         with open('../index.html', 'r', encoding='utf-8') as file:
             content = file.read()
             
-        # Inject auth script before </body>
-        modified_content = content.replace('</body>', f'{auth_script}</body>')
+        # Replace relative paths with absolute paths
+        content = content.replace('href="styles.css"', 'href="/styles.css"')
+        content = content.replace('src="assets/', 'src="/assets/')
+        
+        # Add flash messages template
+        flash_messages = render_template('flash_messages.html')
+        
+        # Inject auth script and flash messages before </body>
+        modified_content = content.replace('</body>', f'{flash_messages}{auth_script}</body>')
         
         # Return the modified content with proper MIME type
         response = app.make_response(modified_content)
         response.mimetype = 'text/html'
         return response
     except Exception as e:
+        print(f"Error serving index.html: {e}")
         # If there's an error, fallback to the direct approach
         return send_from_directory('../', 'index.html')
 

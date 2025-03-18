@@ -340,4 +340,191 @@ document.addEventListener('DOMContentLoaded', () => {
             logo.style.transform = 'perspective(1000px) rotateY(0deg) rotateX(0deg) translateZ(0)';
         });
     }
-}); 
+});
+
+// Blog Article Reading Functionality
+function readArticle(articleId, event) {
+    event.preventDefault();
+    
+    // Get the article data
+    const article = document.querySelector(`[data-article-id="${articleId}"]`);
+    const title = article.querySelector('h3').textContent;
+    const category = article.querySelector('.blog-category span').textContent;
+    const date = article.querySelector('.blog-meta span:first-child').textContent;
+    const readTime = article.querySelector('.blog-meta span:last-child').textContent;
+    const description = article.querySelector('p').textContent;
+    const tags = Array.from(article.querySelectorAll('.blog-tags span')).map(tag => tag.textContent);
+    
+    // Create modal content with full-screen design
+    const modal = document.createElement('div');
+    modal.className = 'article-modal fullscreen';
+    modal.innerHTML = `
+        <div class="article-modal-content fullscreen">
+            <div class="article-modal-header">
+                <div class="modal-nav">
+                    <button class="back-to-blog" onclick="closeArticle(event)">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Blog
+                    </button>
+                    <div class="modal-actions">
+                        <button class="theme-toggle" onclick="toggleReadingMode(event)">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                        <button class="share-btn" onclick="shareArticle('${encodeURIComponent(title)}')">
+                            <i class="fas fa-share-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="article-content-wrapper">
+                <div class="article-header">
+                    <div class="article-meta-top">
+                        <div class="article-category">
+                            <i class="fas fa-${getCategoryIcon(category)}"></i>
+                            <span>${category}</span>
+                        </div>
+                        <div class="article-info">
+                            <span><i class="far fa-calendar"></i> ${date}</span>
+                            <span><i class="far fa-clock"></i> ${readTime}</span>
+                        </div>
+                    </div>
+                    <h1>${title}</h1>
+                    <div class="article-tags">
+                        ${tags.map(tag => `<span>${tag}</span>`).join('')}
+                    </div>
+                </div>
+
+                <div class="article-featured-image">
+                    <img src="assets/blog${articleId}.jpg" alt="${title}" onerror="this.src='assets/placeholder.jpg'">
+                </div>
+
+                <div class="article-body">
+                    <div class="article-lead">
+                        ${description}
+                    </div>
+                    <div class="article-full-content">
+                        <h2>Introduction</h2>
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+                        
+                        <h2>Main Content</h2>
+                        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                        
+                        <blockquote>
+                            "Technology is best when it brings people together." - Matt Mullenweg
+                        </blockquote>
+                        
+                        <h2>Conclusion</h2>
+                        <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
+                    </div>
+                </div>
+
+                <div class="article-footer">
+                    <div class="article-share">
+                        <h3>Share this article</h3>
+                        <div class="share-buttons">
+                            <button onclick="shareArticle('${encodeURIComponent(title)}', 'twitter')">
+                                <i class="fab fa-twitter"></i> Twitter
+                            </button>
+                            <button onclick="shareArticle('${encodeURIComponent(title)}', 'linkedin')">
+                                <i class="fab fa-linkedin"></i> LinkedIn
+                            </button>
+                            <button onclick="shareArticle('${encodeURIComponent(title)}', 'copy')">
+                                <i class="fas fa-link"></i> Copy Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to body
+    document.body.appendChild(modal);
+    
+    // Prevent body scrolling
+    document.body.style.overflow = 'hidden';
+    
+    // Add keyboard navigation
+    document.addEventListener('keydown', handleArticleKeyPress);
+    
+    // Animate modal entrance
+    requestAnimationFrame(() => {
+        modal.classList.add('active');
+    });
+}
+
+// Close article modal
+function closeArticle(event) {
+    if (event) {
+        event.preventDefault();
+    }
+    const modal = document.querySelector('.article-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            document.body.removeChild(modal);
+            document.body.style.overflow = '';
+        }, 300);
+    }
+    // Remove keyboard listener
+    document.removeEventListener('keydown', handleArticleKeyPress);
+}
+
+// Handle keyboard navigation
+function handleArticleKeyPress(event) {
+    if (event.key === 'Escape') {
+        closeArticle();
+    }
+}
+
+// Toggle reading mode (light/dark)
+function toggleReadingMode(event) {
+    event.preventDefault();
+    const modal = document.querySelector('.article-modal');
+    modal.classList.toggle('light-mode');
+    const icon = event.currentTarget.querySelector('i');
+    if (modal.classList.contains('light-mode')) {
+        icon.classList.remove('fa-moon');
+        icon.classList.add('fa-sun');
+    } else {
+        icon.classList.remove('fa-sun');
+        icon.classList.add('fa-moon');
+    }
+}
+
+// Enhanced share functionality
+function shareArticle(title, platform = 'copy') {
+    const url = window.location.href;
+    const text = `Check out this article: ${title}`;
+    
+    switch (platform) {
+        case 'twitter':
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+            break;
+        case 'linkedin':
+            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '_blank');
+            break;
+        case 'copy':
+        default:
+            navigator.clipboard.writeText(url).then(() => {
+                const button = document.querySelector('.share-btn');
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                }, 2000);
+            });
+            break;
+    }
+}
+
+// Helper function to get category icon
+function getCategoryIcon(category) {
+    const icons = {
+        'Web Development': 'code',
+        'UI/UX Design': 'paint-brush',
+        'Innovation': 'lightbulb'
+    };
+    return icons[category] || 'article';
+} 

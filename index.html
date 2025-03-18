@@ -295,60 +295,119 @@
         </section>
 
         <section id="blog">
-            <div class="section-icon">
-                <i class="fas fa-blog"></i>
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-blog"></i>
+                </div>
+                <h2>Latest Blog Posts</h2>
+                <p class="section-subtitle">Exploring the frontiers of technology and development</p>
             </div>
-            <h2>Latest Blog Posts</h2>
+            
             <div class="blog-grid">
-                <article class="blog-card">
-                    <div class="blog-image">
-                        <img src="assets/blog1.jpg" alt="Web Development">
-                        <div class="blog-category">Web Development</div>
-                    </div>
-                    <div class="blog-content">
-                        <div class="blog-meta">
-                            <span><i class="far fa-calendar"></i> March 15, 2024</span>
-                            <span><i class="far fa-clock"></i> 5 min read</span>
+                <article class="blog-card" data-article-id="1">
+                    <div class="blog-card-inner">
+                        <div class="blog-image">
+                            <div class="blog-category">
+                                <i class="fas fa-code"></i>
+                                <span>Web Development</span>
+                            </div>
+                            <img src="assets/blog1.jpg" alt="Web Development">
+                            <div class="blog-overlay">
+                                <div class="blog-meta">
+                                    <span><i class="far fa-calendar"></i> March 15, 2024</span>
+                                    <span><i class="far fa-clock"></i> 5 min read</span>
+                                </div>
+                            </div>
                         </div>
-                        <h3>The Future of Web Development: What's Next?</h3>
-                        <p>Exploring the latest trends and technologies shaping the future of web development, from AI integration to WebAssembly.</p>
-                        <a href="#" class="read-more">Read More <i class="fas fa-arrow-right"></i></a>
+                        <div class="blog-content">
+                            <h3>The Future of Web Development: What's Next?</h3>
+                            <p>Exploring the latest trends and technologies shaping the future of web development, from AI integration to WebAssembly.</p>
+                            <div class="blog-footer">
+                                <a href="/blog/1" class="read-more" onclick="readArticle(1, event)">
+                                    Read Article
+                                    <i class="fas fa-arrow-right"></i>
+                                </a>
+                                <div class="blog-tags">
+                                    <span>#webdev</span>
+                                    <span>#frontend</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </article>
 
-                <article class="blog-card">
-                    <div class="blog-image">
-                        <img src="assets/blog2.jpg" alt="UI/UX Design">
-                        <div class="blog-category">UI/UX Design</div>
-                    </div>
-                    <div class="blog-content">
-                        <div class="blog-meta">
-                            <span><i class="far fa-calendar"></i> March 10, 2024</span>
-                            <span><i class="far fa-clock"></i> 4 min read</span>
+                <article class="blog-card" data-article-id="2">
+                    <div class="blog-card-inner">
+                        <div class="blog-image">
+                            <div class="blog-category">
+                                <i class="fas fa-paint-brush"></i>
+                                <span>UI/UX Design</span>
+                            </div>
+                            <img src="assets/blog2.jpg" alt="UI/UX Design">
+                            <div class="blog-overlay">
+                                <div class="blog-meta">
+                                    <span><i class="far fa-calendar"></i> March 10, 2024</span>
+                                    <span><i class="far fa-clock"></i> 4 min read</span>
+                                </div>
+                            </div>
                         </div>
-                        <h3>Creating User-Centric Design Experiences</h3>
-                        <p>A deep dive into the principles of user-centric design and how to create interfaces that users love.</p>
-                        <a href="#" class="read-more">Read More <i class="fas fa-arrow-right"></i></a>
+                        <div class="blog-content">
+                            <h3>Creating User-Centric Design Experiences</h3>
+                            <p>A deep dive into the principles of user-centric design and how to create interfaces that users love.</p>
+                            <div class="blog-footer">
+                                <a href="/blog/2" class="read-more" onclick="readArticle(2, event)">
+                                    Read Article
+                                    <i class="fas fa-arrow-right"></i>
+                                </a>
+                                <div class="blog-tags">
+                                    <span>#design</span>
+                                    <span>#ux</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </article>
 
-                <article class="blog-card">
-                    <div class="blog-image">
-                        <img src="assets/blog3.jpg" alt="Tech Innovation">
-                        <div class="blog-category">Innovation</div>
-                    </div>
-                    <div class="blog-content">
-                        <div class="blog-meta">
-                            <span><i class="far fa-calendar"></i> March 5, 2024</span>
-                            <span><i class="far fa-clock"></i> 6 min read</span>
+                <article class="blog-card" data-article-id="3">
+                    <div class="blog-card-inner">
+                        <div class="blog-image">
+                            <div class="blog-category">
+                                <i class="fas fa-lightbulb"></i>
+                                <span>Innovation</span>
+                            </div>
+                            <img src="assets/blog3.jpg" alt="Tech Innovation">
+                            <div class="blog-overlay">
+                                <div class="blog-meta">
+                                    <span><i class="far fa-calendar"></i> March 5, 2024</span>
+                                    <span><i class="far fa-clock"></i> 6 min read</span>
+                                </div>
+                            </div>
                         </div>
-                        <h3>Emerging Technologies in 2024</h3>
-                        <p>An overview of the most exciting technological innovations and their impact on software development.</p>
-                        <a href="#" class="read-more">Read More <i class="fas fa-arrow-right"></i></a>
+                        <div class="blog-content">
+                            <h3>Emerging Technologies in 2024</h3>
+                            <p>An overview of the most exciting technological innovations and their impact on software development.</p>
+                            <div class="blog-footer">
+                                <a href="/blog/3" class="read-more" onclick="readArticle(3, event)">
+                                    Read Article
+                                    <i class="fas fa-arrow-right"></i>
+                                </a>
+                                <div class="blog-tags">
+                                    <span>#tech</span>
+                                    <span>#innovation</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </article>
             </div>
-            <a href="#" class="see-all">View All Posts <i class="fas fa-arrow-right"></i></a>
+            
+            <div class="blog-cta">
+                <a href="#" class="see-all">
+                    <span>View All Posts</span>
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+
             <div class="section-indicator">
                 <div class="indicator-line"></div>
                 <div class="indicator-line"></div>
