@@ -548,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Add this to your script.js or create a config.js file
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'https://your-railway-app-name.up.railway.app';
 
 // Example of how to fetch data
 async function fetchPosts() {
