@@ -122,16 +122,23 @@
     <div class="auth-container">
         <div class="card">
             <div class="card-header">
-                <img src="/static/uploads/logo.png" alt="Logo" onerror="this.src='https://via.placeholder.com/60'">
+                <img src="{{ url_for('static', filename='uploads/logo.png') }}" alt="Logo" onerror="this.src='https://via.placeholder.com/60'">
                 <h2>Log In</h2>
                 <p class="mb-0">Welcome back</p>
             </div>
             <div class="card-body">
-                <div id="login-alert" class="alert alert-danger" style="display: none;">
-                    Invalid username or password
-                </div>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
                 
-                <form id="login-form" method="post" action="/login">
+                <form method="post" action="{{ url_for('login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label for="username" class="form-label">Username</label>
                         <input type="text" class="form-control" id="username" name="username" required>
@@ -148,18 +155,10 @@
                 </form>
             </div>
             <div class="card-footer">
-                Don't have an account? <a href="/signup">Sign Up</a><br>
+                Don't have an account? <a href="{{ url_for('signup') }}">Sign Up</a><br>
                 <a href="/" class="mt-2 d-inline-block">Back to Home</a>
             </div>
         </div>
     </div>
-
-    <script src="/script.js"></script>
-    <script>
-        // This will initialize the login form to handle API login
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Login page loaded');
-        });
-    </script>
 </body>
 </html> 
