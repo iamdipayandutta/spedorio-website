@@ -1,0 +1,20 @@
+{
+  "name": "spedorio-website",
+  "version": "1.0.0",
+  "description": "Spedorio Website with Flask Backend",
+  "main": "backend/app.py",
+  "engines": {
+    "node": ">=14.x",
+    "python": "3.11"
+  },
+  "scripts": {
+    "start": "gunicorn backend.app:app",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iamdipayandutta/spedorio-website.git"
+  },
+  "author": "Dipayan Dutta",
+  "license": "ISC"
+} 
