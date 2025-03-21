@@ -1,0 +1,3 @@
+@echo off
+echo Starting Flask backend server...
+python run_local.py 

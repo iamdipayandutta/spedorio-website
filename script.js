@@ -545,4 +545,19 @@ document.addEventListener('DOMContentLoaded', function() {
             controls.style.display = 'none';
         });
     }
-}); 
+});
+
+// Add this to your script.js or create a config.js file
+const API_BASE_URL = 'http://localhost:5000';
+
+// Example of how to fetch data
+async function fetchPosts() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/posts`);
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    return [];
+  }
+} 
