@@ -547,8 +547,52 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Add this to your script.js or create a config.js file
-const API_BASE_URL = 'https://your-railway-app-name.up.railway.app';
+// Configure API URL based on environment
+const API_BASE_URL = 'https://web-production-b4b2.up.railway.app';
+
+// Login function
+async function handleLogin(event) {
+    if (event && event.preventDefault) {
+        event.preventDefault();
+    }
+    
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password }),
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Store auth info
+            localStorage.setItem('authUser', JSON.stringify(data.user));
+            // Redirect to dashboard
+            window.location.href = '/dashboard';
+        } else {
+            // Show error message
+            alert(data.message || 'Login failed');
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        alert('Login failed. Please try again.');
+    }
+}
+
+// Initialize login form
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.querySelector('form[action="/login"]');
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
+    }
+});
 
 // Example of how to fetch data
 async function fetchPosts() {

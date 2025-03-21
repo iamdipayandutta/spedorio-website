@@ -28,10 +28,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # Initialize extensions
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
-# Configure CORS to allow requests from frontend
-CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
-
+CORS(app)  # Enable CORS for API endpoints
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 csrf = CSRFProtect(app)
