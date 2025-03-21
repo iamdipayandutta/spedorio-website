@@ -189,12 +189,12 @@ def dashboard():
 # Serve static files
 @app.route('/<path:path>')
 def serve_static(path):
-    # First try to serve from templates directory
-    if path.startswith('templates/'):
-        return send_from_directory('.', path)
-    
-    # Then try to serve from the root directory
-    return send_from_directory('../', path)
+    # First try to serve from static directory
+    try:
+        return send_from_directory('static', path)
+    except:
+        # Then try to serve from the root directory
+        return send_from_directory('../', path)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
