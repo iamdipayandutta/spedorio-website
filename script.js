@@ -99,31 +99,75 @@ window.addEventListener('mousemove', (e) => {
 });
 
 // Sidebar functionality
-const sidebar = document.querySelector('.sidebar');
-const sidebarOverlay = document.querySelector('.sidebar-overlay');
-const openSidebarBtn = document.getElementById('openSidebar');
-const closeSidebarBtn = document.querySelector('.close-sidebar');
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarOverlay = document.querySelector('.sidebar-overlay');
+    const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
 
-function openSidebar() {
-    sidebar.classList.add('active');
-    sidebarOverlay.classList.add('active');
-    document.body.classList.add('sidebar-open');
-}
+    // Function to open sidebar
+    function openSidebar() {
+        sidebar.classList.add('active');
+        sidebarOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
 
-function closeSidebar() {
-    sidebar.classList.remove('active');
-    sidebarOverlay.classList.remove('active');
-    document.body.classList.remove('sidebar-open');
-}
+    // Function to close sidebar
+    function closeSidebar() {
+        sidebar.classList.remove('active');
+        sidebarOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
 
-openSidebarBtn.addEventListener('click', openSidebar);
-closeSidebarBtn.addEventListener('click', closeSidebar);
-sidebarOverlay.addEventListener('click', closeSidebar);
+    // Mobile menu button click
+    mobileMenuBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        openSidebar();
+    });
 
-// Close sidebar on navigation link click
-document.querySelectorAll('.sidebar-section a').forEach(link => {
-    link.addEventListener('click', () => {
-        closeSidebar();
+    // Close sidebar when clicking overlay
+    sidebarOverlay.addEventListener('click', closeSidebar);
+
+    // Close sidebar when clicking a link (mobile)
+    document.querySelectorAll('.sidebar a').forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                closeSidebar();
+            }
+        });
+    });
+
+    // Handle touch events for swipe
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    document.addEventListener('touchstart', function(e) {
+        touchStartX = e.touches[0].clientX;
+    }, false);
+
+    document.addEventListener('touchmove', function(e) {
+        touchEndX = e.touches[0].clientX;
+    }, false);
+
+    document.addEventListener('touchend', function() {
+        const swipeThreshold = 50;
+        const swipeDistance = touchEndX - touchStartX;
+        
+        // Swipe right to open
+        if (swipeDistance > swipeThreshold && touchStartX < 50) {
+            openSidebar();
+        }
+        
+        // Swipe left to close
+        if (swipeDistance < -swipeThreshold && sidebar.classList.contains('active')) {
+            closeSidebar();
+        }
+    }, false);
+
+    // Close sidebar when pressing Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+            closeSidebar();
+        }
     });
 });
 
@@ -654,4 +698,142 @@ function expandImage(element) {
             modal.style.display = 'none';
         }
     };
-} 
+}
+
+// Mobile menu functionality
+document.querySelector('.mobile-menu-btn').addEventListener('click', function() {
+    document.querySelector('.sidebar').classList.toggle('active');
+});
+
+// Close sidebar when clicking outside
+document.addEventListener('click', function(e) {
+    const sidebar = document.querySelector('.sidebar');
+    const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+    
+    if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target) && sidebar.classList.contains('active')) {
+        sidebar.classList.remove('active');
+    }
+});
+
+// Close sidebar when clicking a link (mobile)
+document.querySelectorAll('.sidebar a').forEach(link => {
+    link.addEventListener('click', function() {
+        if (window.innerWidth <= 768) {
+            document.querySelector('.sidebar').classList.remove('active');
+        }
+    });
+});
+
+// Samsung S24 Touch Optimizations
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if device is Samsung S24 or similar high-end Android
+    const isHighEndAndroid = /Android.*Chrome\/[.0-9]*/.test(navigator.userAgent) && 
+                            window.devicePixelRatio >= 3;
+
+    if (isHighEndAndroid) {
+        // Enable smooth scrolling with touch momentum
+        document.documentElement.style.scrollBehavior = 'smooth';
+        
+        // Optimize touch response
+        document.body.style.touchAction = 'manipulation';
+        
+        // Add haptic feedback for buttons
+        const buttons = document.querySelectorAll('.project-btn, .mobile-menu-btn, .social-btn');
+        buttons.forEach(button => {
+            button.addEventListener('touchstart', function() {
+                if (navigator.vibrate) {
+                    navigator.vibrate(1);
+                }
+            });
+        });
+
+        // Enhanced bottom sheet behavior
+        const detailsSection = document.querySelector('.project-details');
+        if (detailsSection) {
+            let startY = 0;
+            let currentY = 0;
+            let initialScroll = 0;
+            let isScrolling = false;
+
+            detailsSection.addEventListener('touchstart', function(e) {
+                startY = e.touches[0].clientY;
+                currentY = startY;
+                initialScroll = this.scrollTop;
+                isScrolling = false;
+            }, { passive: true });
+
+            detailsSection.addEventListener('touchmove', function(e) {
+                if (!detailsSection.classList.contains('active')) return;
+                
+                const touch = e.touches[0];
+                const diff = touch.clientY - startY;
+                
+                // Check if user is scrolling content or trying to dismiss
+                if (!isScrolling) {
+                    isScrolling = Math.abs(diff) > 5;
+                }
+                
+                if (diff > 0 && this.scrollTop <= 0) {
+                    e.preventDefault();
+                    currentY = touch.clientY;
+                    const transform = Math.min(diff * 0.5, 200);
+                    this.style.transform = `translateY(${transform}px)`;
+                    this.style.transition = 'none';
+                }
+            }, { passive: false });
+
+            detailsSection.addEventListener('touchend', function() {
+                if (!detailsSection.classList.contains('active')) return;
+                
+                const diff = currentY - startY;
+                this.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                
+                if (diff > 100 && !isScrolling) {
+                    this.style.transform = 'translateY(100%)';
+                    setTimeout(() => {
+                        toggleProjectDetails();
+                        this.style.transform = '';
+                    }, 300);
+                } else {
+                    this.style.transform = '';
+                }
+            });
+        }
+
+        // Enhanced image gallery interactions
+        const gallery = document.querySelector('.preview-gallery');
+        if (gallery) {
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let currentScale = 1;
+            let initialDistance = 0;
+
+            gallery.addEventListener('touchstart', function(e) {
+                if (e.touches.length === 2) {
+                    initialDistance = Math.hypot(
+                        e.touches[0].pageX - e.touches[1].pageX,
+                        e.touches[0].pageY - e.touches[1].pageY
+                    );
+                }
+            }, { passive: true });
+
+            gallery.addEventListener('touchmove', function(e) {
+                if (e.touches.length === 2) {
+                    const distance = Math.hypot(
+                        e.touches[0].pageX - e.touches[1].pageX,
+                        e.touches[0].pageY - e.touches[1].pageY
+                    );
+                    currentScale = Math.min(Math.max(distance / initialDistance, 0.5), 2);
+                    e.target.style.transform = `scale(${currentScale})`;
+                }
+            }, { passive: true });
+
+            gallery.addEventListener('touchend', function(e) {
+                if (e.target.tagName === 'IMG') {
+                    e.target.style.transform = '';
+                    currentScale = 1;
+                }
+            });
+        }
+    }
+}); 
