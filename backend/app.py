@@ -223,47 +223,6 @@ def index():
                         footer.parentNode.insertBefore(projectSection, footer);
                     }}
                 }});
-            
-            // Add "My Projects" tab under "About Me"
-            const aboutSection = document.querySelector('#about');
-            if (aboutSection) {{
-                const projectsTab = document.createElement('div');
-                projectsTab.className = 'highlight-box';
-                projectsTab.innerHTML = `
-                    <h2>My Projects</h2>
-                    <p>Explore some of the projects I've worked on:</p>
-                    <div id="projects-container" class="projects-grid"></div>
-                `;
-                aboutSection.appendChild(projectsTab);
-
-                // Fetch and display projects
-                fetch('/api/projects')
-                    .then(response => response.json())
-                    .then(projects => {{
-                        const projectsContainer = document.querySelector('#projects-container');
-                        projects.forEach(project => {{
-                            const projectCard = document.createElement('div');
-                            projectCard.className = 'project-card';
-                            projectCard.innerHTML = `
-                                <img src="/static/uploads/${{project.image}}" alt="${{project.title}}">
-                                <h3>${{project.title}}</h3>
-                                <p>${{project.description}}</p>
-                                <div class="tech-stack">
-                                    ${{project.tech_stack.map(tech => `<span class="tech-tag">${{tech}}</span>`).join('')}}
-                                </div>
-                                <div class="project-links">
-                                    <a href="${{project.url}}" target="_blank" class="project-link">Live Demo</a>
-                                    ${{project.github_url ? `
-                                        <a href="${{project.github_url}}" target="_blank" class="project-link github">
-                                            <i class="fab fa-github"></i> Code
-                                        </a>
-                                    ` : ''}}
-                                </div>
-                            `;
-                            projectsContainer.appendChild(projectCard);
-                        }});
-                    }});
-            }}
         }});
     </script>
     """
