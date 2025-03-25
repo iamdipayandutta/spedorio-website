@@ -15,7 +15,6 @@
         <div class="scroll-dot" data-tooltip="Home"></div>
         <div class="scroll-dot" data-tooltip="About"></div>
         <div class="scroll-dot" data-tooltip="Projects"></div>
-        <div class="scroll-dot" data-tooltip="Blog"></div>
         <div class="scroll-dot" data-tooltip="Contact"></div>
     </div>
 
@@ -143,16 +142,6 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#blog">
-                            <div class="category-indicator"></div>
-                            <div class="link-content">
-                                <i class="fas fa-blog"></i>
-                                Blog
-                            </div>
-                            <i class="fas fa-chevron-right nav-arrow"></i>
-                        </a>
-                    </li>
-                    <li>
                         <a href="#contact">
                             <div class="category-indicator"></div>
                             <div class="link-content">
@@ -164,7 +153,7 @@
                     </li>
                 </ul>
             </div>
-            <div class="sidebar-section">
+            <div class="sidebar-section" style="display: none;">
                 <h3>Blog Categories</h3>
                 <ul>
                     <li>
@@ -317,25 +306,59 @@
             <div class="projects-grid">
                 <div class="project-card">
                     <div class="project-image">
-                        <img src="assets/site-tracker.png" alt="ViewSpeedFlow">
+                        <img src="assets\Picsart_25-03-25_01-46-55-597.jpg" alt="ViewSpeedFlow">
                     </div>
                     <div class="project-content">
                         <h3>ViewSpeedFlow</h3>
                         <p>ViewSpeedFlow: All-in-one Windows network monitoring solution. Track real-time bandwidth, perform speed tests, generate reports, and access system information through a clean interface. Perfect for both professionals and home users seeking reliable network performance insights without complexity.</p>
-                        <div class="tech-stack">
-                            <span>Python</span>
-                            <span></span>
-                            <span>Node.js</span>
-                            <span>WebSocket</span>
-                            <span>D3.js</span>
-                        </div>
+
                         <div class="project-links">
                             <a href="https://github.com/iamdipayandutta/ViewSpeedFlow" target="_blank" class="project-btn github">
-                                <i class="fab fa-github"></i> Access Open Source Module (Coming Soon)
+                                <i class="fab fa-github"></i> Access Open Source Module</br>(Coming Soon)
                             </a>
                             <a href="https://spedorio.itch.io/viewspeedflow" target="_blank" class="project-btn demo">
                                 <i class="fas fa-external-link-alt"></i> Download Now
                             </a>
+                            <button class="project-btn know-more" onclick="toggleProjectDetails()">
+                                <i class="fas fa-info-circle"></i> Know More
+                            </button>
+                        </div>
+                        <div class="project-details" style="display: none;">
+                            <div class="details-content">
+                                <h4>About ViewSpeedFlow</h4>
+                                <p>ViewSpeedFlow is a real-time network monitoring tool for Windows, designed to track your download and upload speeds, run speed tests, and display system specifications in a simple and efficient way. This is an early access version, so expect UI improvements and new features in upcoming updates!</p>
+                                
+                                <div class="preview-gallery">
+                                    <div class="preview-screenshot" onclick="expandImage(this)">
+                                        <img src="assets/Picsart_25-03-25_13-30-59-830.jpg" alt="ViewSpeedFlow System Specifications" style="object-fit: contain;">
+                                    </div>
+                                    <div class="preview-screenshot" onclick="expandImage(this)">
+                                        <img src="assets/Picsart_25-03-25_13-38-59-719.jpg" alt="ViewSpeedFlow Network Monitor" style="object-fit: contain;">
+                                    </div>
+                                </div>
+
+                                <div id="imageModal" class="image-modal">
+                                    <span class="close-modal-btn">&times;</span>
+                                    <img class="modal-content" id="expandedImage">
+                                </div>
+
+                                <h4>Current Features:</h4>
+                                <ul>
+                                    <li>Real-Time Network Speed Monitoring – View current download and upload speeds in the taskbar tooltip.</li>
+                                    <li>Speed Test Functionality – Run a speed test to measure your actual download and upload speeds with a graphical representation of the results.</li>
+                                    <li>Network Topology Detection – Displays whether you're using Ethernet or Wi-Fi for a better understanding of your connection.</li>
+                                    <li>System Specifications Overview – Get detailed system specs, including processor details, RAM, disk space, Python version, and OS info.</li>
+                                    <li>Crucial Network Details – View active connections, public IP, hostname, and OS (with an option to hide sensitive details).</li>
+                                    <li>Light & Dark Mode Support – Switch between dark mode for a sleek look and light mode for better visibility.</li>
+                                    <li>Export Results – Save your speed test results as a PDF for easy reference.</li>
+                                </ul>
+
+                                <h4>Upcoming Improvements:</h4>
+                                <ul>
+                                    <li>(soon) Complete UI Overhaul – A more modern and polished look is in development.</li>
+                                    <li>(soon) New Features & Enhancements – Expect better customization options, additional network diagnostics, and more...</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -348,7 +371,7 @@
             </div>
         </section>
 
-        <section id="blog">
+        <section id="blog" style="display: none;">
             <div class="section-header">
                 <div class="section-icon">
                     <i class="fas fa-blog"></i>

@@ -604,4 +604,54 @@ async function fetchPosts() {
     console.error('Error fetching posts:', error);
     return [];
   }
+}
+
+function toggleProjectDetails() {
+    const detailsSection = document.querySelector('.project-details');
+    const knowMoreBtn = document.querySelector('.project-btn.know-more');
+    
+    if (detailsSection.style.display === 'none') {
+        detailsSection.style.display = 'block';
+        knowMoreBtn.innerHTML = '<i class="fas fa-chevron-up"></i> Show Less';
+    } else {
+        detailsSection.style.display = 'none';
+        knowMoreBtn.innerHTML = '<i class="fas fa-info-circle"></i> Know More';
+    }
+}
+
+function expandImage(element) {
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('expandedImage');
+    const img = element.querySelector('img');
+    
+    modal.style.display = 'block';
+    modalImg.src = img.src;
+    modalImg.style.width = 'auto';
+    modalImg.style.height = 'auto';
+
+    // Center the image after it loads
+    modalImg.onload = function() {
+        const windowAspect = window.innerWidth / window.innerHeight;
+        const imageAspect = this.naturalWidth / this.naturalHeight;
+
+        if (this.naturalWidth > window.innerWidth * 0.9 || this.naturalHeight > window.innerHeight * 0.9) {
+            if (windowAspect > imageAspect) {
+                this.style.height = '90vh';
+                this.style.width = 'auto';
+            } else {
+                this.style.width = '90vw';
+                this.style.height = 'auto';
+            }
+        } else {
+            this.style.width = this.naturalWidth + 'px';
+            this.style.height = this.naturalHeight + 'px';
+        }
+    };
+
+    // Close modal when clicking outside the image or on close button
+    modal.onclick = function(e) {
+        if (e.target === modal || e.target.className === 'close-modal-btn') {
+            modal.style.display = 'none';
+        }
+    };
 } 
