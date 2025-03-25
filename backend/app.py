@@ -22,7 +22,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
 
-# Ensure upload directory exists
+# Ensure upload diy exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Initialize extensions
