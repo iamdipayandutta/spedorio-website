@@ -91,6 +91,28 @@ class Post(db.Model):
             'author': self.author.username
         }
 
+class Project(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    image = db.Column(db.String(200), nullable=True)
+    url = db.Column(db.String(500), nullable=False)
+    github_url = db.Column(db.String(500), nullable=True)
+    tech_stack = db.Column(db.String(200), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'image': self.image,
+            'url': self.url,
+            'github_url': self.github_url,
+            'tech_stack': self.tech_stack.split(',') if self.tech_stack else [],
+            'created_at': self.created_at.strftime('%B %d, %Y')
+        }
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -159,20 +181,88 @@ def index():
                 }}
             }}
             
-            // Update auth buttons in nav
+            // Remove auth buttons if they exist
             const authButtons = document.querySelector('.auth-buttons');
             if (authButtons) {{
-                if (window.authStatus.is_logged_in) {{
-                    authButtons.innerHTML = `
-                        <a href="/dashboard" class="auth-btn login-btn">Dashboard</a>
-                        <a href="/logout" class="auth-btn signup-btn">Logout</a>
+                authButtons.remove();
+            }}
+            
+            // Add project showcase section
+            fetch('/api/projects')
+                .then(response => response.json())
+                .then(projects => {{
+                    const projectSection = document.createElement('div');
+                    projectSection.className = 'project-showcase';
+                    projectSection.innerHTML = `
+                        <h2>Project Showcase</h2>
+                        <div class="project-grid">
+                            ${{projects.map(project => `
+                                <div class="project-card">
+                                    <img src="/static/uploads/${{project.image}}" alt="${{project.title}}">
+                                    <h3>${{project.title}}</h3>
+                                    <p>${{project.description}}</p>
+                                    <div class="tech-stack">
+                                        ${{project.tech_stack.map(tech => `<span class="tech-tag">${{tech}}</span>`).join('')}}
+                                    </div>
+                                    <div class="project-links">
+                                        <a href="${{project.url}}" target="_blank" class="project-link">Live Demo</a>
+                                        ${{project.github_url ? `
+                                            <a href="${{project.github_url}}" target="_blank" class="project-link github">
+                                                <i class="fab fa-github"></i> Code
+                                            </a>
+                                        ` : ''}}
+                                    </div>
+                                </div>
+                            `).join('')}}
+                        </div>
                     `;
-                }} else {{
-                    authButtons.innerHTML = `
-                        <a href="/login" class="auth-btn login-btn">Login</a>
-                        <a href="/signup" class="auth-btn signup-btn">Sign Up</a>
-                    `;
-                }}
+                    
+                    // Insert project section before the footer
+                    const footer = document.querySelector('footer');
+                    if (footer) {{
+                        footer.parentNode.insertBefore(projectSection, footer);
+                    }}
+                }});
+            
+            // Add "My Projects" tab under "About Me"
+            const aboutSection = document.querySelector('#about');
+            if (aboutSection) {{
+                const projectsTab = document.createElement('div');
+                projectsTab.className = 'highlight-box';
+                projectsTab.innerHTML = `
+                    <h2>My Projects</h2>
+                    <p>Explore some of the projects I've worked on:</p>
+                    <div id="projects-container" class="projects-grid"></div>
+                `;
+                aboutSection.appendChild(projectsTab);
+
+                // Fetch and display projects
+                fetch('/api/projects')
+                    .then(response => response.json())
+                    .then(projects => {{
+                        const projectsContainer = document.querySelector('#projects-container');
+                        projects.forEach(project => {{
+                            const projectCard = document.createElement('div');
+                            projectCard.className = 'project-card';
+                            projectCard.innerHTML = `
+                                <img src="/static/uploads/${{project.image}}" alt="${{project.title}}">
+                                <h3>${{project.title}}</h3>
+                                <p>${{project.description}}</p>
+                                <div class="tech-stack">
+                                    ${{project.tech_stack.map(tech => `<span class="tech-tag">${{tech}}</span>`).join('')}}
+                                </div>
+                                <div class="project-links">
+                                    <a href="${{project.url}}" target="_blank" class="project-link">Live Demo</a>
+                                    ${{project.github_url ? `
+                                        <a href="${{project.github_url}}" target="_blank" class="project-link github">
+                                            <i class="fab fa-github"></i> Code
+                                        </a>
+                                    ` : ''}}
+                                </div>
+                            `;
+                            projectsContainer.appendChild(projectCard);
+                        }});
+                    }});
             }}
         }});
     </script>
@@ -241,6 +331,11 @@ def get_category_posts(slug):
     category = Category.query.filter_by(slug=slug).first_or_404()
     posts = Post.query.filter_by(category_id=category.id, published=True).order_by(Post.created_at.desc()).all()
     return jsonify([post.to_dict() for post in posts])
+
+@app.route('/api/projects')
+def get_projects():
+    projects = Project.query.order_by(Project.created_at.desc()).all()
+    return jsonify([project.to_dict() for project in projects])
 
 # User authentication routes
 @app.route('/signup', methods=['GET', 'POST'])
@@ -505,6 +600,49 @@ def delete_category(id):
     flash('Category deleted successfully!')
     return redirect(url_for('admin_categories'))
 
+@app.route('/admin/projects')
+@login_required
+@admin_required
+def admin_projects():
+    projects = Project.query.order_by(Project.created_at.desc()).all()
+    return render_template('admin/projects.html', projects=projects)
+
+@app.route('/admin/projects/new', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def new_project():
+    if request.method == 'POST':
+        title = request.form.get('title')
+        description = request.form.get('description')
+        url = request.form.get('url')
+        github_url = request.form.get('github_url')
+        tech_stack = request.form.get('tech_stack')
+        
+        # Handle image upload
+        image = None
+        if 'image' in request.files:
+            file = request.files['image']
+            if file.filename:
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                image = filename
+        
+        project = Project(
+            title=title,
+            description=description,
+            image=image,
+            url=url,
+            github_url=github_url,
+            tech_stack=tech_stack
+        )
+        
+        db.session.add(project)
+        db.session.commit()
+        flash('Project added successfully!', 'success')
+        return redirect(url_for('admin_projects'))
+    
+    return render_template('admin/project_form.html')
+
 # Profile management routes
 @app.route('/profile')
 @login_required
@@ -651,8 +789,21 @@ def init_db():
     with app.app_context():
         db.create_all()
         create_admin_user()
+        
+        # Add sample project if none exist
+        if not Project.query.first():
+            sample_project = Project(
+                title='Sample Project',
+                description='This is a sample project to showcase the layout.',
+                url='https://example.com',
+                github_url='https://github.com/yourusername/sample-project',
+                tech_stack='Python,Flask,JavaScript',
+                image='sample-project.png'
+            )
+            db.session.add(sample_project)
+            db.session.commit()
 
 # Run the app
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port) 
+    app.run(host='0.0.0.0', port=port)
