@@ -92,15 +92,13 @@
             <img src="assets\PicsArt_10-07-11.10.16.png" alt="Dipayan Logo" class="nav-logo">
         </div>
         <div class="auth-buttons">
-            <a href="{{ url_for('login') }}" class="auth-btn login-btn">Login</a>
-            <a href="{{ url_for('signup') }}" class="auth-btn signup-btn">Sign Up</a>
+            <a href="/login" class="auth-btn login-btn">Login</a>
+            <a href="/signup" class="auth-btn signup-btn">Sign Up</a>
         </div>
+        <button class="mobile-menu-btn">
+            <i class="fas fa-bars"></i>
+        </button>
     </nav>
-
-    <!-- Mobile Menu Button -->
-    <button class="mobile-menu-btn">
-        <i class="fas fa-bars"></i>
-    </button>
 
     <!-- Sidebar Overlay -->
     <div class="sidebar-overlay"></div>
@@ -322,8 +320,8 @@
                             <a href="https://github.com/iamdipayandutta/ViewSpeedFlow" target="_blank" class="project-btn github">
                                 <i class="fab fa-github"></i> Access Open Source Module</br>(Coming Soon)
                             </a>
-                            <a href="https://spedorio.itch.io/viewspeedflow" target="_blank" class="project-btn demo">
-                                <i class="fas fa-external-link-alt"></i> Download Now
+                            <a href="assets/ViewSpeedFlow.exe" download class="project-btn demo">
+                                <i class="fas fa-download"></i> Download Now
                             </a>
                             <button class="project-btn know-more" onclick="toggleProjectDetails()">
                                 <i class="fas fa-info-circle"></i> Know More
@@ -377,7 +375,7 @@
             </div>
         </section>
 
-        <section id="blog" style="display: none;">
+        <section id="blog">
             <div class="section-header">
                 <div class="section-icon">
                     <i class="fas fa-blog"></i>
@@ -386,7 +384,10 @@
                 <p class="section-subtitle">Exploring the frontiers of technology and development</p>
             </div>
             
-            <div class="blog-grid">
+            <div class="blog-grid" data-dynamic="true">
+                <!-- Dynamic blog content will be loaded by JavaScript -->
+                <!-- Static content below is a fallback and will be replaced -->
+                <!--
                 <article class="blog-card" data-article-id="1">
                     <div class="blog-card-inner">
                         <div class="blog-image">
@@ -522,6 +523,7 @@
                         </div>
                     </div>
                 </article>
+                -->
             </div>
             
             <div class="blog-cta">
@@ -670,5 +672,6 @@
 
     <script src="script.js"></script>
     <script src="scripts/spotify.js"></script>
+    <script src="blog.js"></script>
 </body>
 </html> 

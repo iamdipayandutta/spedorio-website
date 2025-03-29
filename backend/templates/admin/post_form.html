@@ -15,7 +15,7 @@
             <button type="button" class="btn btn-preview" onclick="togglePreview()">
                 <i class="fas fa-eye"></i> Preview
             </button>
-            <button type="submit" form="post-form" class="btn btn-save">
+            <button type="submit" form="post-form" class="btn btn-save" id="save-button">
                 <i class="fas fa-save"></i> Save Changes
             </button>
         </div>
@@ -23,6 +23,7 @@
 
     <div class="editor-container">
         <form id="post-form" method="post" enctype="multipart/form-data" class="editor-form">
+            {{ form.csrf_token }}
             <div class="editor-main">
                 <!-- Title and Category Section -->
                 <div class="editor-section">
@@ -50,21 +51,30 @@
                 <!-- Summary Section -->
                 <div class="editor-section">
                     <textarea class="form-control summary-input" id="summary" name="summary" 
-                              placeholder="Write a brief summary of your post (max 300 characters)">{{ post.summary if post else '' }}</textarea>
+                              placeholder="Write a brief summary of your post (max 300 characters)" maxlength="300">{{ post.summary if post else '' }}</textarea>
+                    <div class="chars-counter"><span id="summary-count">0</span>/300</div>
                 </div>
 
                 <!-- Content Section -->
                 <div class="editor-section content-section">
                     <div class="content-toolbar">
-                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('**', '**')"><i class="fas fa-bold"></i></button>
-                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('*', '*')"><i class="fas fa-italic"></i></button>
-                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('### ', '')"><i class="fas fa-heading"></i></button>
-                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('- ', '')"><i class="fas fa-list"></i></button>
-                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('[', '](url)')"><i class="fas fa-link"></i></button>
-                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('```\n', '\n```')"><i class="fas fa-code"></i></button>
+                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('**', '**')" title="Bold"><i class="fas fa-bold"></i></button>
+                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('*', '*')" title="Italic"><i class="fas fa-italic"></i></button>
+                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('### ', '')" title="Heading"><i class="fas fa-heading"></i></button>
+                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('- ', '')" title="List Item"><i class="fas fa-list"></i></button>
+                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('[', '](url)')" title="Link"><i class="fas fa-link"></i></button>
+                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('```\n', '\n```')" title="Code Block"><i class="fas fa-code"></i></button>
+                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('![alt text](', ')')" title="Image"><i class="fas fa-image"></i></button>
                     </div>
                     <textarea class="form-control content-input" id="content" name="content" required
                               placeholder="Write your post content here (supports Markdown)">{{ post.content if post else '' }}</textarea>
+                    
+                    <!-- Preview Panel (initially hidden) -->
+                    <div id="preview-panel" class="preview-panel" style="display: none;"></div>
+                    
+                    <div class="autosave-status">
+                        <span id="autosave-status">Draft saved</span>
+                    </div>
                 </div>
             </div>
 
@@ -81,7 +91,7 @@
                             <i class="fas fa-cloud-upload-alt"></i>
                             <span>Click to upload image</span>
                         </label>
-                        <input type="file" class="form-control" id="featured_image" name="featured_image" hidden>
+                        <input type="file" class="form-control" id="featured_image" name="featured_image" hidden accept="image/*">
                     </div>
                 </div>
 
@@ -171,6 +181,7 @@
         border: 1px solid var(--bs-border-color);
         border-radius: 8px;
         padding: 1.5rem;
+        position: relative;
     }
 
     .title-input {
@@ -278,6 +289,32 @@
     .read-time-unit {
         color: var(--bs-gray-600);
     }
+    
+    .preview-panel {
+        min-height: 400px;
+        padding: 1rem;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 6px;
+        margin-top: 1rem;
+        overflow-y: auto;
+        background: #fff;
+        color: #333;
+    }
+    
+    .chars-counter {
+        text-align: right;
+        font-size: 0.8rem;
+        color: var(--bs-gray-600);
+        margin-top: 0.5rem;
+    }
+    
+    .autosave-status {
+        text-align: right;
+        font-size: 0.8rem;
+        color: var(--bs-gray-600);
+        margin-top: 0.5rem;
+        font-style: italic;
+    }
 
     @media (max-width: 992px) {
         .editor-container {
@@ -288,35 +325,82 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
-    // Auto-generate slug from title
-    document.getElementById('title').addEventListener('input', function() {
-        const title = this.value;
+    // Setup marked.js for XSS security and performance
+    marked.use({
+        gfm: true,
+        breaks: true,
+        sanitize: true
+    });
+    
+    // Cache for rendered markdown
+    const markdownCache = new Map();
+    
+    // Performance optimization variables
+    let isPreviewMode = false;
+    let autosaveTimeoutId = null;
+    let lastSaveTime = Date.now();
+    let lastContent = '';
+    
+    // Debounce function for better performance
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+    
+    // Auto-generate slug from title with debouncing
+    const generateSlug = debounce(function(title) {
         const slug = title.toLowerCase()
             .replace(/[^\w\s-]/g, '')
             .replace(/\s+/g, '-')
             .replace(/-+/g, '-');
         
         document.getElementById('slug').value = slug;
+    }, 300);
+    
+    document.getElementById('title').addEventListener('input', function() {
+        const title = this.value;
+        generateSlug(title);
+        triggerAutosave();
     });
 
-    // Image upload preview
+    // Optimized image upload preview
     document.getElementById('featured_image').addEventListener('change', function(e) {
         const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const container = document.querySelector('.image-upload-container');
-                let img = container.querySelector('img');
-                if (!img) {
-                    img = document.createElement('img');
-                    img.className = 'current-image';
-                    container.insertBefore(img, container.firstChild);
-                }
-                img.src = e.target.result;
-            }
-            reader.readAsDataURL(file);
+        if (!file) return;
+        
+        // Validate file type
+        if (!file.type.match('image.*')) {
+            alert('Please select an image file');
+            return;
         }
+        
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image too large. Please select an image under 5MB');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const container = document.querySelector('.image-upload-container');
+            let img = container.querySelector('img');
+            
+            if (!img) {
+                img = document.createElement('img');
+                img.className = 'current-image';
+                container.insertBefore(img, container.firstChild);
+            }
+            
+            img.src = e.target.result;
+            triggerAutosave();
+        };
+        
+        reader.readAsDataURL(file);
     });
 
     // Markdown toolbar functionality
@@ -333,13 +417,244 @@
         textarea.focus();
         textarea.selectionStart = start + prefix.length;
         textarea.selectionEnd = end + prefix.length;
+        
+        // Clear cache for this content
+        markdownCache.clear();
+        
+        triggerAutosave();
     }
 
-    // Preview functionality
+    // Efficient preview functionality with caching
     function togglePreview() {
-        const content = document.getElementById('content').value;
-        // Implement preview logic here
-        alert('Preview functionality to be implemented');
+        const contentTextarea = document.getElementById('content');
+        const previewPanel = document.getElementById('preview-panel');
+        
+        if (isPreviewMode) {
+            // Switch back to edit mode
+            contentTextarea.style.display = 'block';
+            previewPanel.style.display = 'none';
+            document.querySelector('.btn-preview').innerHTML = '<i class="fas fa-eye"></i> Preview';
+        } else {
+            // Switch to preview mode
+            const content = contentTextarea.value;
+            
+            try {
+                // Use cached version if available
+                let html;
+                if (markdownCache.has(content)) {
+                    html = markdownCache.get(content);
+                } else {
+                    // Convert markdown to HTML and cache it
+                    html = marked.parse(content);
+                    markdownCache.set(content, html);
+                }
+                
+                previewPanel.innerHTML = html;
+                
+                contentTextarea.style.display = 'none';
+                previewPanel.style.display = 'block';
+                document.querySelector('.btn-preview').innerHTML = '<i class="fas fa-edit"></i> Edit';
+            } catch (error) {
+                console.error('Error rendering markdown:', error);
+                alert('Error rendering preview. Please check your markdown syntax.');
+            }
+        }
+        
+        isPreviewMode = !isPreviewMode;
     }
+    
+    // Count remaining characters for summary
+    const summaryTextarea = document.getElementById('summary');
+    const summaryCount = document.getElementById('summary-count');
+    
+    summaryTextarea.addEventListener('input', function() {
+        const count = this.value.length;
+        summaryCount.textContent = count;
+        triggerAutosave();
+    });
+    
+    // Initialize summary count
+    summaryCount.textContent = summaryTextarea.value.length;
+    
+    // Listen for content changes with debouncing
+    document.getElementById('content').addEventListener('input', debounce(function() {
+        triggerAutosave();
+        
+        // Auto-calculate read time
+        const wordCount = this.value.trim().split(/\s+/).filter(Boolean).length;
+        const readTime = Math.max(1, Math.ceil(wordCount / 200)); // Assuming 200 words per minute
+        document.getElementById('read_time').value = readTime;
+    }, 500));
+    
+    // Other form element listeners
+    document.getElementById('category_id').addEventListener('change', triggerAutosave);
+    document.getElementById('published').addEventListener('change', triggerAutosave);
+    document.getElementById('slug').addEventListener('input', debounce(triggerAutosave, 500));
+    document.getElementById('read_time').addEventListener('input', debounce(triggerAutosave, 500));
+    
+    // Autosave functionality with rate limiting
+    function triggerAutosave() {
+        // Don't save too frequently
+        const now = Date.now();
+        if (now - lastSaveTime < 2000) {
+            // If it's been less than 2 seconds since the last save,
+            // clear previous timeout and set a new one
+            if (autosaveTimeoutId) {
+                clearTimeout(autosaveTimeoutId);
+            }
+            
+            // Update status
+            const statusElem = document.getElementById('autosave-status');
+            statusElem.textContent = 'Waiting to save...';
+            
+            // Set new timeout
+            autosaveTimeoutId = setTimeout(function() {
+                saveFormToLocalStorage();
+                lastSaveTime = Date.now();
+                statusElem.textContent = 'Draft saved at ' + new Date().toLocaleTimeString();
+            }, 2000);
+            
+            return;
+        }
+        
+        // Clear previous timeout if it exists
+        if (autosaveTimeoutId) {
+            clearTimeout(autosaveTimeoutId);
+        }
+        
+        // Update status
+        const statusElem = document.getElementById('autosave-status');
+        statusElem.textContent = 'Saving...';
+        
+        // Save immediately if content has changed significantly
+        const content = document.getElementById('content').value;
+        if (Math.abs(content.length - lastContent.length) > 500) {
+            saveFormToLocalStorage();
+            lastSaveTime = Date.now();
+            lastContent = content;
+            statusElem.textContent = 'Draft saved at ' + new Date().toLocaleTimeString();
+            return;
+        }
+        
+        // Otherwise set timeout for delayed save
+        autosaveTimeoutId = setTimeout(function() {
+            saveFormToLocalStorage();
+            lastSaveTime = Date.now();
+            lastContent = content;
+            statusElem.textContent = 'Draft saved at ' + new Date().toLocaleTimeString();
+        }, 1000);
+    }
+    
+    function saveFormToLocalStorage() {
+        const formData = {
+            title: document.getElementById('title').value,
+            content: document.getElementById('content').value,
+            summary: document.getElementById('summary').value,
+            slug: document.getElementById('slug').value,
+            category_id: document.getElementById('category_id').value,
+            published: document.getElementById('published').checked,
+            read_time: document.getElementById('read_time').value
+        };
+        
+        // Store using a unique key based on post ID or 'new-post'
+        const postId = '{{ post.id if post else "new-post" }}';
+        localStorage.setItem(`post-draft-${postId}`, JSON.stringify(formData));
+        
+        // Also save to server if it's an existing post
+        if (postId !== 'new-post') {
+            // Add post_id to the data
+            formData.post_id = postId;
+            
+            // Send to server
+            fetch('/admin/posts/autosave', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Draft saved to server:', data.timestamp);
+                } else {
+                    console.error('Error saving draft:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error saving draft:', error);
+            });
+        }
+    }
+    
+    // Load autosaved content if exists
+    function loadAutosavedContent() {
+        const postId = '{{ post.id if post else "new-post" }}';
+        const saved = localStorage.getItem(`post-draft-${postId}`);
+        
+        if (saved) {
+            try {
+                const formData = JSON.parse(saved);
+                
+                // Confirm before restoring
+                const shouldRestore = confirm('We found an autosaved draft. Would you like to restore it?');
+                
+                if (shouldRestore) {
+                    document.getElementById('title').value = formData.title || '';
+                    document.getElementById('content').value = formData.content || '';
+                    document.getElementById('summary').value = formData.summary || '';
+                    document.getElementById('slug').value = formData.slug || '';
+                    document.getElementById('category_id').value = formData.category_id || '';
+                    document.getElementById('published').checked = formData.published || false;
+                    document.getElementById('read_time').value = formData.read_time || 5;
+                    
+                    // Update summary counter
+                    summaryCount.textContent = formData.summary ? formData.summary.length : 0;
+                    
+                    // Save a reference to the content
+                    lastContent = formData.content || '';
+                    
+                    document.getElementById('autosave-status').textContent = 'Autosaved draft restored';
+                } else {
+                    // Clear the localStorage if user doesn't want to restore
+                    localStorage.removeItem(`post-draft-${postId}`);
+                }
+            } catch (e) {
+                console.error('Error parsing autosaved content', e);
+            }
+        }
+    }
+    
+    // Automatically save when form is submitted
+    document.getElementById('post-form').addEventListener('submit', function() {
+        const postId = '{{ post.id if post else "new-post" }}';
+        localStorage.removeItem(`post-draft-${postId}`);
+        
+        // Show save indicator
+        const saveButton = document.getElementById('save-button');
+        saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        saveButton.disabled = true;
+    });
+    
+    // Check for autosaved content on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAutosavedContent();
+        lastContent = document.getElementById('content').value;
+        
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+S or Cmd+S to save
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                document.getElementById('post-form').submit();
+            }
+            
+            // Ctrl+P or Cmd+P to preview
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                togglePreview();
+            }
+        });
+    });
 </script>
 {% endblock %} 

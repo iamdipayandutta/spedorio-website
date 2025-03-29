@@ -103,6 +103,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const sidebar = document.querySelector('.sidebar');
     const sidebarOverlay = document.querySelector('.sidebar-overlay');
     const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+    const closeSidebarBtn = document.querySelector('.close-sidebar');
+    const openSidebarBtn = document.getElementById('openSidebar');
 
     // Function to open sidebar
     function openSidebar() {
@@ -123,6 +125,15 @@ document.addEventListener('DOMContentLoaded', function() {
         e.stopPropagation();
         openSidebar();
     });
+
+    // Open sidebar button click
+    openSidebarBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        openSidebar();
+    });
+
+    // Close sidebar button click
+    closeSidebarBtn.addEventListener('click', closeSidebar);
 
     // Close sidebar when clicking overlay
     sidebarOverlay.addEventListener('click', closeSidebar);

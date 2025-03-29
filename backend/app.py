@@ -2,36 +2,59 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
-from datetime import datetime
+from flask_session import Session
+from datetime import datetime, timedelta
 import os
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_wtf.csrf import CSRFProtect
-from functools import wraps
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
+from flask_wtf import FlaskForm
 
 # Initialize Flask app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'development-key')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///blog.db')
+app.config['SECRET_KEY'] = 'your-secret-key-change-this'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
+app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # Set CSRF token expiration to 1 hour
 
-# Ensure upload diy exists
+# Configure Flask-Session
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = True
+app.config['SESSION_USE_SIGNER'] = True
+app.config['SESSION_FILE_DIR'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'flask_session')
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
+
+# Cache invalidation mechanism
+app.config['LAST_MODIFIED'] = datetime.utcnow()
+
+# Function to update last modified timestamp for cache invalidation
+def update_last_modified():
+    app.config['LAST_MODIFIED'] = datetime.utcnow()
+
+# Ensure upload and session directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
 
 # Initialize extensions
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+CORS(app)  # Enable CORS for API endpoints
+Session(app)  # Initialize Flask-Session
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 csrf = CSRFProtect(app)
+
+# Configure CSRF to exempt API routes
+@csrf.exempt
+def csrf_exempt_api():
+    if request.path.startswith('/api/'):
+        return True
+    return False
+
+csrf._exempt_views.add(csrf_exempt_api)
 
 # Models
 class User(UserMixin, db.Model):
@@ -41,7 +64,6 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
-    is_admin = db.Column(db.Boolean, default=False)
     posts = db.relationship('Post', backref='author', lazy=True)
     
     def set_password(self, password):
@@ -91,28 +113,6 @@ class Post(db.Model):
             'author': self.author.username
         }
 
-class Project(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text, nullable=True)
-    image = db.Column(db.String(200), nullable=True)
-    url = db.Column(db.String(500), nullable=False)
-    github_url = db.Column(db.String(500), nullable=True)
-    tech_stack = db.Column(db.String(200), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'title': self.title,
-            'description': self.description,
-            'image': self.image,
-            'url': self.url,
-            'github_url': self.github_url,
-            'tech_stack': self.tech_stack.split(',') if self.tech_stack else [],
-            'created_at': self.created_at.strftime('%B %d, %Y')
-        }
-
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -120,16 +120,10 @@ def load_user(user_id):
 # Routes
 @app.route('/')
 def index():
-    # Check if user is logged in and is admin
-    is_admin = current_user.is_authenticated and current_user.is_admin and current_user.username == 'admin'
-    
-    # Store admin status in session
-    session['is_admin'] = is_admin
-    
+    # Check if user is logged in
     auth_status = {
         'is_logged_in': 'true' if current_user.is_authenticated else 'false',
-        'username': current_user.username if current_user.is_authenticated else '',
-        'is_admin': 'true' if is_admin else 'false'
+        'username': current_user.username if current_user.is_authenticated else ''
     }
     
     # Create script to inject authentication status into the frontend
@@ -137,18 +131,10 @@ def index():
     <script>
         window.authStatus = {{
             is_logged_in: {auth_status['is_logged_in']},
-            username: "{auth_status['username']}",
-            is_admin: {auth_status['is_admin']}
+            username: "{auth_status['username']}"
         }};
         
         document.addEventListener('DOMContentLoaded', function() {{
-            // Handle edit buttons visibility
-            if (window.authStatus.is_admin && window.authStatus.username === 'admin') {{
-                document.querySelectorAll('.admin-controls').forEach(btn => {{
-                    btn.style.display = 'block';
-                }});
-            }}
-            
             // Handle sidebar account section
             const accountSection = document.querySelector('.sidebar-section:nth-child(2)');
             if (accountSection && accountSection.querySelector('h3').textContent === 'Account') {{
@@ -181,48 +167,16 @@ def index():
                 }}
             }}
             
-            // Remove auth buttons if they exist
+            // Toggle auth buttons in nav
             const authButtons = document.querySelector('.auth-buttons');
             if (authButtons) {{
-                authButtons.remove();
-            }}
-            
-            // Add project showcase section
-            fetch('/api/projects')
-                .then(response => response.json())
-                .then(projects => {{
-                    const projectSection = document.createElement('div');
-                    projectSection.className = 'project-showcase';
-                    projectSection.innerHTML = `
-                        <h2>Project Showcase</h2>
-                        <div class="project-grid">
-                            ${{projects.map(project => `
-                                <div class="project-card">
-                                    <img src="/static/uploads/${{project.image}}" alt="${{project.title}}">
-                                    <h3>${{project.title}}</h3>
-                                    <p>${{project.description}}</p>
-                                    <div class="tech-stack">
-                                        ${{project.tech_stack.map(tech => `<span class="tech-tag">${{tech}}</span>`).join('')}}
-                                    </div>
-                                    <div class="project-links">
-                                        <a href="${{project.url}}" target="_blank" class="project-link">Live Demo</a>
-                                        ${{project.github_url ? `
-                                            <a href="${{project.github_url}}" target="_blank" class="project-link github">
-                                                <i class="fab fa-github"></i> Code
-                                            </a>
-                                        ` : ''}}
-                                    </div>
-                                </div>
-                            `).join('')}}
-                        </div>
+                if (window.authStatus.is_logged_in) {{
+                    authButtons.innerHTML = `
+                        <a href="/dashboard" class="auth-btn login-btn">Dashboard</a>
+                        <a href="/logout" class="auth-btn signup-btn">Logout</a>
                     `;
-                    
-                    // Insert project section before the footer
-                    const footer = document.querySelector('footer');
-                    if (footer) {{
-                        footer.parentNode.insertBefore(projectSection, footer);
-                    }}
-                }});
+                }}
+            }}
         }});
     </script>
     """
@@ -233,22 +187,14 @@ def index():
         with open('../index.html', 'r', encoding='utf-8') as file:
             content = file.read()
             
-        # Replace relative paths with absolute paths
-        content = content.replace('href="styles.css"', 'href="/styles.css"')
-        content = content.replace('src="assets/', 'src="/assets/')
-        
-        # Add flash messages template
-        flash_messages = render_template('flash_messages.html')
-        
-        # Inject auth script and flash messages before </body>
-        modified_content = content.replace('</body>', f'{flash_messages}{auth_script}</body>')
+        # Inject auth script before </body>
+        modified_content = content.replace('</body>', f'{auth_script}</body>')
         
         # Return the modified content with proper MIME type
         response = app.make_response(modified_content)
         response.mimetype = 'text/html'
         return response
     except Exception as e:
-        print(f"Error serving index.html: {e}")
         # If there's an error, fallback to the direct approach
         return send_from_directory('../', 'index.html')
 
@@ -266,41 +212,87 @@ def admin_index():
 @app.route('/api/posts')
 def get_posts():
     posts = Post.query.filter_by(published=True).order_by(Post.created_at.desc()).all()
-    return jsonify([post.to_dict() for post in posts])
+    response = jsonify([post.to_dict() for post in posts])
+    # Add cache control headers to prevent browser caching
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    response.headers['Last-Modified'] = app.config['LAST_MODIFIED'].strftime('%a, %d %b %Y %H:%M:%S GMT')
+    return response
 
 @app.route('/api/posts/<slug>')
 def get_post(slug):
     post = Post.query.filter_by(slug=slug, published=True).first_or_404()
     post_data = post.to_dict()
     post_data['content'] = post.content
-    return jsonify(post_data)
+    response = jsonify(post_data)
+    # Add cache control headers to prevent browser caching
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    response.headers['Last-Modified'] = app.config['LAST_MODIFIED'].strftime('%a, %d %b %Y %H:%M:%S GMT')
+    return response
 
 @app.route('/api/categories')
 def get_categories():
     categories = Category.query.all()
-    return jsonify([{
+    response = jsonify([{
         'id': category.id,
         'name': category.name,
         'slug': category.slug,
         'icon': category.icon
     } for category in categories])
+    # Add cache control headers to prevent browser caching
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    response.headers['Last-Modified'] = app.config['LAST_MODIFIED'].strftime('%a, %d %b %Y %H:%M:%S GMT')
+    return response
 
 @app.route('/api/categories/<slug>/posts')
 def get_category_posts(slug):
     category = Category.query.filter_by(slug=slug).first_or_404()
     posts = Post.query.filter_by(category_id=category.id, published=True).order_by(Post.created_at.desc()).all()
-    return jsonify([post.to_dict() for post in posts])
+    response = jsonify([post.to_dict() for post in posts])
+    # Add cache control headers to prevent browser caching
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    response.headers['Last-Modified'] = app.config['LAST_MODIFIED'].strftime('%a, %d %b %Y %H:%M:%S GMT')
+    return response
 
-@app.route('/api/projects')
-def get_projects():
-    projects = Project.query.order_by(Project.created_at.desc()).all()
-    return jsonify([project.to_dict() for project in projects])
+@app.route('/api/check-updates')
+def check_updates():
+    """Check if there have been any updates to the blog content"""
+    last_modified = app.config['LAST_MODIFIED'].strftime('%a, %d %b %Y %H:%M:%S GMT')
+    
+    # Check if client sent If-Modified-Since header
+    if_modified_since = request.headers.get('If-Modified-Since')
+    
+    if if_modified_since:
+        try:
+            # Parse the If-Modified-Since header
+            ims_date = datetime.strptime(if_modified_since, '%a, %d %b %Y %H:%M:%S GMT')
+            
+            # Convert last_modified to datetime for comparison
+            last_mod_date = datetime.strptime(last_modified, '%a, %d %b %Y %H:%M:%S GMT')
+            
+            # If client's version is current, return 304 Not Modified
+            if ims_date >= last_mod_date:
+                return '', 304
+        except Exception as e:
+            print(f"Error parsing If-Modified-Since header: {str(e)}")
+    
+    # Return 200 OK with Last-Modified header
+    response = jsonify({'updated': True, 'last_modified': last_modified})
+    response.headers['Last-Modified'] = last_modified
+    return response
 
 # User authentication routes
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if current_user.is_authenticated:
-        return redirect(url_for('user_dashboard'))
+        return redirect(url_for('dashboard'))
     
     if request.method == 'POST':
         username = request.form.get('username')
@@ -338,24 +330,51 @@ def signup():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        print(f"User already authenticated, redirecting to dashboard")
+        return redirect(url_for('dashboard'))
     
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        remember = 'remember' in request.form
+        
+        print(f"Login attempt: username='{username}', password='{password}'")
+        print(f"CSRF token present: {'csrf_token' in request.form}")
         
         user = User.query.filter_by(username=username).first()
-        if user and user.check_password(password):
-            login_user(user)
-            user.last_login = datetime.utcnow()
+        if user:
+            print(f"User found: {user.username}, checking password...")
+            is_valid = user.check_password(password)
+            print(f"Password valid: {is_valid}")
             
-            # Set admin status in session
-            session['is_admin'] = user.is_admin and user.username == 'admin'
-            
-            db.session.commit()
-            return redirect(url_for('index'))
-        else:
-            flash('Invalid username or password', 'error')
+            if is_valid:
+                # Update last login time
+                user.last_login = datetime.utcnow()
+                db.session.commit()
+                
+                # Login the user with a new session
+                try:
+                    login_user(user, remember=remember)
+                    
+                    # Add user info to session
+                    session['user_id'] = user.id
+                    session['username'] = user.username
+                    session.modified = True
+                    
+                    print(f"User logged in, session cookie set")
+                    print(f"current_user.is_authenticated: {current_user.is_authenticated}")
+                    print(f"session data: {session}")
+                    
+                    # Force redirect to dashboard
+                    response = redirect(url_for('dashboard'))
+                    print(f"Redirecting to: {response.location}")
+                    return response
+                except Exception as e:
+                    print(f"Error during login: {str(e)}")
+                    flash(f"Login error: {str(e)}", 'danger')
+        
+        # If we get here, authentication failed
+        flash('Invalid username or password', 'danger')
     
     return render_template('auth/login.html')
 
@@ -386,8 +405,6 @@ def admin_login():
 @app.route('/logout')
 def logout():
     logout_user()
-    # Clear admin status from session
-    session.pop('is_admin', None)
     flash('You have been logged out successfully.', 'success')
     return redirect(url_for('index'))
 
@@ -451,25 +468,22 @@ def new_post():
         
         db.session.add(post)
         db.session.commit()
+        
+        # Update last-modified timestamp for cache invalidation
+        update_last_modified()
+        
         flash('Post created successfully!')
         return redirect(url_for('admin_posts'))
     
-    return render_template('admin/post_form.html', categories=categories)
+    # Create a form object with CSRF token for the template
+    form = FlaskForm()
+    
+    return render_template('admin/post_form.html', categories=categories, form=form)
 
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin or current_user.username != 'admin':
-            flash('Access denied. Admin privileges required.', 'error')
-            return redirect(url_for('index'))
-        return f(*args, **kwargs)
-    return decorated_function
-
-@app.route('/admin/edit-post/<int:post_id>', methods=['GET', 'POST'])
+@app.route('/admin/posts/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
-@admin_required
-def edit_post(post_id):
-    post = Post.query.get_or_404(post_id)
+def edit_post(id):
+    post = Post.query.get_or_404(id)
     categories = Category.query.all()
     
     if request.method == 'POST':
@@ -490,27 +504,105 @@ def edit_post(post_id):
                 post.featured_image = filename
         
         db.session.commit()
-        flash('Post updated successfully!', 'success')
-        return redirect(url_for('admin_posts'))
         
-    return render_template('admin/post_form.html', post=post, categories=categories)
+        # Update last-modified timestamp for cache invalidation
+        update_last_modified()
+        
+        flash('Post updated successfully!')
+        return redirect(url_for('admin_posts'))
+    
+    # Create a form object with CSRF token for the template
+    form = FlaskForm()
+    
+    return render_template('admin/post_form.html', post=post, categories=categories, form=form)
 
-@app.route('/admin/posts/<int:post_id>/edit')
+@app.route('/admin/posts/delete/<int:id>', methods=['POST'])
 @login_required
-@admin_required
-def frontend_edit_post(post_id):
-    post = Post.query.get_or_404(post_id)
-    return redirect(url_for('edit_post', post_id=post.id))
-
-@app.route('/admin/posts/<int:post_id>/delete', methods=['POST'])
-@login_required
-def delete_post(post_id):
-    post = Post.query.get_or_404(post_id)
-    if current_user.is_admin:
+def delete_post(id):
+    try:
+        post = Post.query.get_or_404(id)
+        
+        # Optional: Add authorization check
+        # if post.user_id != current_user.id and not current_user.is_admin:
+        #     flash('You do not have permission to delete this post.', 'danger')
+        #     return redirect(url_for('admin_posts'))
+        
+        # Store the title and slug for the flash message and cache invalidation
+        title = post.title
+        slug = post.slug
+        category_id = post.category_id
+        
+        # Get the category for cache invalidation
+        category = Category.query.get(category_id)
+        category_slug = category.slug if category else None
+        
+        # Delete the post
         db.session.delete(post)
         db.session.commit()
-        flash('Post deleted successfully.', 'success')
-    return redirect(url_for('manage_posts'))
+        
+        # Update last-modified timestamp for cache invalidation
+        update_last_modified()
+        
+        flash(f'Post "{title}" deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting post: {str(e)}', 'danger')
+        print(f"Error in delete_post: {str(e)}")
+    
+    return redirect(url_for('admin_posts'))
+
+@app.route('/admin/posts/autosave', methods=['POST'])
+@login_required
+@csrf.exempt  # Exempt from CSRF for AJAX
+def autosave_post():
+    data = request.get_json()
+    
+    # Validate required fields
+    if not data or 'content' not in data or 'title' not in data:
+        return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
+    
+    try:
+        # Handle existing post update
+        if 'post_id' in data and data['post_id'] and data['post_id'] != 'new-post':
+            post = Post.query.get(data['post_id'])
+            
+            if not post:
+                return jsonify({'status': 'error', 'message': 'Post not found'}), 404
+                
+            # Check ownership
+            if post.user_id != current_user.id:
+                return jsonify({'status': 'error', 'message': 'Not authorized'}), 403
+                
+            # Update draft data
+            post.title = data.get('title', post.title)
+            post.content = data.get('content', post.content)
+            post.summary = data.get('summary', post.summary)
+            post.slug = data.get('slug', post.slug)
+            if 'category_id' in data and data['category_id']:
+                post.category_id = data['category_id']
+            post.read_time = data.get('read_time', post.read_time)
+            post.published = data.get('published', post.published)
+            
+            # Save in database
+            db.session.commit()
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Draft saved successfully',
+                'post_id': post.id,
+                'timestamp': datetime.utcnow().isoformat()
+            })
+        else:
+            # For new posts, just return success without saving to DB
+            return jsonify({
+                'status': 'success',
+                'message': 'Draft saved locally',
+                'timestamp': datetime.utcnow().isoformat()
+            })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/admin/categories')
 @login_required
@@ -558,49 +650,6 @@ def delete_category(id):
     db.session.commit()
     flash('Category deleted successfully!')
     return redirect(url_for('admin_categories'))
-
-@app.route('/admin/projects')
-@login_required
-@admin_required
-def admin_projects():
-    projects = Project.query.order_by(Project.created_at.desc()).all()
-    return render_template('admin/projects.html', projects=projects)
-
-@app.route('/admin/projects/new', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def new_project():
-    if request.method == 'POST':
-        title = request.form.get('title')
-        description = request.form.get('description')
-        url = request.form.get('url')
-        github_url = request.form.get('github_url')
-        tech_stack = request.form.get('tech_stack')
-        
-        # Handle image upload
-        image = None
-        if 'image' in request.files:
-            file = request.files['image']
-            if file.filename:
-                filename = secure_filename(file.filename)
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                image = filename
-        
-        project = Project(
-            title=title,
-            description=description,
-            image=image,
-            url=url,
-            github_url=github_url,
-            tech_stack=tech_stack
-        )
-        
-        db.session.add(project)
-        db.session.commit()
-        flash('Project added successfully!', 'success')
-        return redirect(url_for('admin_projects'))
-    
-    return render_template('admin/project_form.html')
 
 # Profile management routes
 @app.route('/profile')
@@ -654,115 +703,65 @@ def change_password():
 
 @app.route('/dashboard')
 @login_required
-def user_dashboard():
-    # Calculate days since joined
-    if current_user.created_at:
-        delta = datetime.utcnow() - current_user.created_at
-        days_since_joined = delta.days
-    else:
-        days_since_joined = 0
-    
-    # Calculate days since last login
-    days_since_last_login = None
-    if current_user.last_login:
-        delta = datetime.utcnow() - current_user.last_login
-        if delta.days > 0:
-            days_since_last_login = delta.days
-    
-    # Get total posts count
-    total_posts = Post.query.count()
-    
-    # Get recent posts
-    recent_posts = Post.query.filter_by(published=True).order_by(Post.created_at.desc()).limit(4).all()
-    
-    # Get categories
-    categories = Category.query.all()
-    
-    return render_template('auth/dashboard.html',
-                          days_since_joined=days_since_joined,
-                          days_since_last_login=days_since_last_login,
-                          total_posts=total_posts,
-                          recent_posts=recent_posts,
-                          categories=categories)
-
-# Spotify callback route
-@app.route('/callback')
-def spotify_callback():
-    try:
-        # Get the index.html content
-        with open('../index.html', 'r', encoding='utf-8') as file:
-            content = file.read()
-            
-        # Replace relative paths with absolute paths
-        content = content.replace('href="styles.css"', 'href="/styles.css"')
-        content = content.replace('src="assets/', 'src="/assets/')
-        content = content.replace('src="scripts/', 'src="/scripts/')
+def dashboard():
+    # Check if template exists
+    template_path = os.path.join(app.root_path, 'templates', 'auth', 'dashboard.html')
+    if not os.path.exists(template_path):
+        print(f"WARNING: Dashboard template not found at {template_path}")
+        flash("Dashboard template not found. Please check your installation.", "danger")
+        return redirect(url_for('index'))
         
-        # Return the modified content with proper MIME type
-        response = app.make_response(content)
-        response.mimetype = 'text/html'
-        return response
-    except Exception as e:
-        print(f"Error in spotify_callback: {e}")
-        return redirect('/')
-
-@app.route('/scripts/<path:filename>')
-def serve_scripts(filename):
-    return send_from_directory('../scripts', filename)
-
-# Create admin user function
-def create_admin_user():
     try:
-        admin = User.query.filter_by(username='admin').first()
-        if not admin:
-            admin = User(
-                username='admin',
-                email='admin@example.com',
-                is_admin=True
-            )
-            admin.set_password('admin123')
-            db.session.add(admin)
-            db.session.commit()
-            print("Admin user created successfully")
+        # Calculate days since joined
+        if current_user.created_at:
+            delta = datetime.utcnow() - current_user.created_at
+            days_since_joined = delta.days
         else:
-            # Ensure existing admin user has admin privileges
-            if not admin.is_admin:
-                admin.is_admin = True
-                db.session.commit()
-                print("Existing admin user updated with admin privileges")
-    except Exception as e:
-        print(f"Error creating admin user: {e}")
-    admin = User.query.filter_by(username='admin').first()
-    if not admin:
-        admin = User(
-            username='admin',
-            email='admin@example.com',
-            is_admin=True
-        )
-        admin.set_password('admin123')
-        db.session.add(admin)
-        db.session.commit()
-
-# Create tables and admin user
-def init_db():
-    with app.app_context():
-        db.create_all()
-        create_admin_user()
+            days_since_joined = 0
         
-        # Add sample project if none exist
-        if not Project.query.first():
-            sample_project = Project(
-                title='Sample Project',
-                description='This is a sample project to showcase the layout.',
-                url='https://example.com',
-                github_url='https://github.com/yourusername/sample-project',
-                tech_stack='Python,Flask,JavaScript',
-                image='sample-project.png'
-            )
-            db.session.add(sample_project)
-            db.session.commit()
+        # Calculate days since last login
+        days_since_last_login = None
+        if current_user.last_login:
+            delta = datetime.utcnow() - current_user.last_login
+            if delta.days > 0:
+                days_since_last_login = delta.days
+        
+        # Get total posts count
+        total_posts = Post.query.count()
+        
+        # Get recent posts
+        recent_posts = Post.query.filter_by(published=True).order_by(Post.created_at.desc()).limit(4).all()
+        
+        # Get categories
+        categories = Category.query.all()
+        
+        return render_template('auth/dashboard.html',
+                            days_since_joined=days_since_joined,
+                            days_since_last_login=days_since_last_login,
+                            total_posts=total_posts,
+                            recent_posts=recent_posts,
+                            categories=categories)
+    except Exception as e:
+        print(f"Error in dashboard route: {str(e)}")
+        flash(f"Error loading dashboard: {str(e)}", "danger")
+        return redirect(url_for('index'))
+
+@app.route('/posts/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def user_edit_post(id):
+    # Get the post and verify ownership
+    post = Post.query.get_or_404(id)
+    
+    # Check if current user is the author of the post
+    if post.user_id != current_user.id:
+        flash('You do not have permission to edit this post.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Redirect to the admin edit functionality
+    return redirect(url_for('edit_post', id=id))
 
 # Run the app
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True) 

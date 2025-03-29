@@ -182,6 +182,52 @@
             font-size: 0.85rem;
             opacity: 0.7;
         }
+        
+        /* Make post card text white */
+        .post-card .card-body {
+            color: var(--light-text);
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .post-card .card-title {
+            color: white;
+            font-weight: bold;
+        }
+        
+        .post-card .card-text {
+            color: white;
+            font-size: 1.05rem;
+        }
+        
+        /* Brighten post meta text */
+        .post-card .post-meta {
+            color: white;
+            opacity: 0.9;
+        }
+        
+        /* Make account information text white and visible */
+        .card .card-body p {
+            color: white;
+            font-size: 1.05rem;
+            margin-bottom: 0.8rem;
+        }
+        
+        .card .card-body p strong {
+            color: var(--primary-color);
+        }
+        
+        /* Style for the edit button */
+        .btn-warning {
+            background-color: #FFC107;
+            border: none;
+            color: #000;
+            font-weight: 600;
+        }
+        
+        .btn-warning:hover {
+            background-color: #e0a800;
+            color: #000;
+        }
     </style>
 </head>
 <body>
@@ -274,7 +320,12 @@
                                             <span><i class="far fa-clock me-1"></i> {{ post.read_time }} min read</span>
                                             <span>{{ post.created_at.strftime('%b %d, %Y') }}</span>
                                         </div>
-                                        <a href="/api/posts/{{ post.slug }}" class="btn btn-primary mt-3">Read More</a>
+                                        <div class="d-flex mt-3">
+                                            <a href="/api/posts/{{ post.slug }}" class="btn btn-primary me-2">Read More</a>
+                                            <a href="{{ url_for('user_edit_post', id=post.id) }}" class="btn btn-warning">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
