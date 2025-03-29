@@ -1,14 +1,12 @@
 import React from 'react';
 
 const ViewSpeedFlow = () => {
-  const handleDownload = () => {
-    const downloadLink = '/downloads/speedflow.exe';
-    const link = document.createElement('a');
-    link.href = downloadLink;
-    link.download = 'speedflow.exe';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = async () => {
+    try {
+      window.location.href = '/api/download';
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
   };
 
   return (
