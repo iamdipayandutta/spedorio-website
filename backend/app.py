@@ -39,10 +39,10 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
 
 # Initialize extensions
+Session(app)  # Initialize Flask-Session first
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 CORS(app)  # Enable CORS for API endpoints
-Session(app)  # Initialize Flask-Session
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 csrf = CSRFProtect(app)
