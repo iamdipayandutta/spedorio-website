@@ -266,12 +266,15 @@ async function renderBlogPosts() {
         blogGrid.innerHTML = '';
         
         if (!posts || posts.length === 0) {
-            blogGrid.innerHTML = '<p class="text-center">No blog posts found. Create some in the admin panel.</p>';
+            console.error('No blog posts found in API response.');
+            blogGrid.innerHTML = '<p class="text-center" style="color: #ff3838;">No blog posts found. Create some in the admin panel or check if posts are published.</p>';
             return;
         }
         
         // Display up to 3 posts
-        const postsToShow = posts.slice(0, 3);
+        // const postsToShow = posts.slice(0, 3);
+        // Show all posts instead of just 3
+        const postsToShow = posts;
         
         postsToShow.forEach(post => {
             // Create a fresh element instead of using innerHTML for better performance

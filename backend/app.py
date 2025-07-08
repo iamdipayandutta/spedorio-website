@@ -729,8 +729,8 @@ def dashboard():
         # Get total posts count
         total_posts = Post.query.count()
         
-        # Get recent posts
-        recent_posts = Post.query.filter_by(published=True).order_by(Post.created_at.desc()).limit(4).all()
+        # Get recent posts (only for the current user)
+        recent_posts = Post.query.filter_by(user_id=current_user.id, published=True).order_by(Post.created_at.desc()).limit(4).all()
         
         # Get categories
         categories = Category.query.all()
