@@ -10,6 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_wtf.csrf import CSRFProtect
 from flask_wtf import FlaskForm
+from routes.api import api  # Import the API blueprint
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -121,27 +122,32 @@ def load_user(user_id):
 @app.route('/')
 def index():
     # Check if user is logged in
+    is_admin = current_user.is_authenticated and current_user.username == 'admin'
     auth_status = {
         'is_logged_in': 'true' if current_user.is_authenticated else 'false',
-        'username': current_user.username if current_user.is_authenticated else ''
+        'username': current_user.username if current_user.is_authenticated else '',
+        'is_admin': 'true' if is_admin else 'false'
     }
-    
     # Create script to inject authentication status into the frontend
     auth_script = f"""
     <script>
         window.authStatus = {{
             is_logged_in: {auth_status['is_logged_in']},
-            username: "{auth_status['username']}"
+            username: "{auth_status['username']}",
+            is_admin: {auth_status['is_admin']}
         }};
-        
         document.addEventListener('DOMContentLoaded', function() {{
+            // Hide/show admin-only elements
+            if (window.authStatus && window.authStatus.is_admin === 'true') {{
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+            }} else {{
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+            }}
             // Handle sidebar account section
             const accountSection = document.querySelector('.sidebar-section:nth-child(2)');
             if (accountSection && accountSection.querySelector('h3').textContent === 'Account') {{
                 const accountLinks = accountSection.querySelector('ul');
-                
-                if (window.authStatus.is_logged_in) {{
-                    // User is logged in
+                if (window.authStatus.is_logged_in === 'true') {{
                     accountLinks.innerHTML = `
                         <li>
                             <a href="/dashboard" class="sidebar-link">
@@ -158,23 +164,22 @@ def index():
                             </a>
                         </li>
                     `;
-                    
-                    // Add username to the sidebar
                     const usernameElement = document.createElement('div');
                     usernameElement.className = 'user-info';
                     usernameElement.innerHTML = '<p>Logged in as: <strong>' + window.authStatus.username + '</strong></p>';
                     accountSection.insertBefore(usernameElement, accountLinks);
                 }}
             }}
-            
             // Toggle auth buttons in nav
             const authButtons = document.querySelector('.auth-buttons');
             if (authButtons) {{
-                if (window.authStatus.is_logged_in) {{
+                if (window.authStatus.is_logged_in === 'true' && window.authStatus.is_admin === 'true') {{
                     authButtons.innerHTML = `
                         <a href="/dashboard" class="auth-btn login-btn">Dashboard</a>
                         <a href="/logout" class="auth-btn signup-btn">Logout</a>
                     `;
+                }} else {{
+                    authButtons.innerHTML = '';
                 }}
             }}
         }});
@@ -207,6 +212,9 @@ def serve_static(path):
 @app.route('/admin')
 def admin_index():
     return render_template('admin/index.html')
+
+# Register blueprints
+app.register_blueprint(api, url_prefix='/api')
 
 # API Routes
 @app.route('/api/posts')

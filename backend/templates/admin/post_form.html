@@ -625,15 +625,72 @@
         }
     }
     
-    // Automatically save when form is submitted
-    document.getElementById('post-form').addEventListener('submit', function() {
-        const postId = '{{ post.id if post else "new-post" }}';
-        localStorage.removeItem(`post-draft-${postId}`);
+    // Handle form submission
+    document.getElementById('post-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
         
-        // Show save indicator
+        const formData = new FormData(this);
         const saveButton = document.getElementById('save-button');
-        saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
         saveButton.disabled = true;
+        saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        
+        try {
+            const response = await fetch('{{ url_for("admin.save_post", post_id=post.id if post else "new") }}', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to save post');
+            }
+            
+            const result = await response.json();
+            
+            // Show success message
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success';
+            alert.innerHTML = '<i class="fas fa-check-circle"></i> Post saved successfully!';
+            document.querySelector('.editor-header').appendChild(alert);
+            
+            // If the post is published, notify the main page to refresh blog section
+            if (formData.get('published') === 'on') {
+                // Broadcast a custom event that the main page listens for
+                const event = new CustomEvent('blog-updated', {
+                    detail: {
+                        action: 'post-published',
+                        postId: result.id
+                    }
+                });
+                window.parent.document.dispatchEvent(event);
+                
+                // Force refresh the blog cache
+                try {
+                    await fetch('/api/check-updates', {
+                        method: 'GET',
+                        headers: {
+                            'Cache-Control': 'no-cache'
+                        }
+                    });
+                } catch (error) {
+                    console.error('Failed to notify about blog update:', error);
+                }
+            }
+            
+            // Redirect after a short delay
+            setTimeout(() => {
+                window.location.href = '{{ url_for("admin.posts") }}';
+            }, 1500);
+            
+        } catch (error) {
+            console.error('Error saving post:', error);
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-danger';
+            alert.innerHTML = '<i class="fas fa-exclamation-circle"></i> Failed to save post. Please try again.';
+            document.querySelector('.editor-header').appendChild(alert);
+        } finally {
+            saveButton.disabled = false;
+            saveButton.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+        }
     });
     
     // Check for autosaved content on page load

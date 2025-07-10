@@ -21,6 +21,60 @@ const postCache = {
     }
 };
 
+// Listen for blog updates from admin panel
+document.addEventListener('blog-updated', async function(event) {
+    logDebug('Received blog update event:', event.detail);
+    
+    // Invalidate cache
+    postCache.invalidateAll();
+    
+    // Refresh blog content
+    await renderBlogPosts();
+    
+    // Show notification
+    const notification = document.createElement('div');
+    notification.className = 'blog-update-notification';
+    notification.innerHTML = `
+        <i class="fas fa-sync"></i>
+        Blog content updated!
+    `;
+    document.body.appendChild(notification);
+    
+    // Remove notification after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+});
+
+// Add styles for notification
+const style = document.createElement('style');
+style.textContent = `
+    .blog-update-notification {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #39ff14;
+        color: #000;
+        padding: 10px 20px;
+        border-radius: 5px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        animation: slideIn 0.3s ease-out;
+        z-index: 1000;
+    }
+    
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+`;
+document.head.appendChild(style);
+
 // Fetch all blog posts with caching
 async function fetchBlogPosts() {
     try {
@@ -214,81 +268,66 @@ async function checkForUpdates() {
 
 // Render blog posts in the blog section
 async function renderBlogPosts() {
-    console.log('Rendering blog posts with complete replacement...');
+    console.log('Rendering blog posts...');
     
     // Try to find the blog grid
     const blogGrid = document.querySelector('.blog-grid');
     
     if (!blogGrid) {
         console.error('Blog grid not found with class .blog-grid');
-        // Try adding an error message to the blog section
-        const blogSection = document.querySelector('#blog');
-        if (blogSection) {
-            const errorDiv = document.createElement('div');
-            errorDiv.style.color = 'red';
-            errorDiv.style.padding = '20px';
-            errorDiv.style.textAlign = 'center';
-            errorDiv.textContent = 'ERROR: Blog grid not found. Check HTML structure.';
-            blogSection.appendChild(errorDiv);
-        }
         return;
     }
     
-    // We found the primary .blog-grid element
-    console.log('Found blog grid with class .blog-grid, clearing hardcoded content');
-    
     try {
         // Show loading state
-        blogGrid.innerHTML = '<p class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading blog posts...</p>';
+        blogGrid.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading blog posts...</div>';
         
-        // Direct fetch with error handling
-        console.log('Fetching posts from', `${API_BASE_URL}/posts?_=${Date.now()}`);
-        
-        const response = await fetch(`${API_BASE_URL}/posts?_=${Date.now()}`, {
-            headers: {
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
-            },
-            cache: 'no-store'
-        });
-        
-        console.log('Response status:', response.status);
+        // Fetch posts from API
+        const response = await fetch(`${API_BASE_URL}/posts`);
+        console.log('API Response:', response.status, response.statusText);
         
         if (!response.ok) {
-            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            throw new Error(`Failed to fetch posts: ${response.status} ${response.statusText}`);
         }
         
         const posts = await response.json();
-        console.log('Posts received:', posts.length, posts);
+        console.log('Fetched posts:', posts);
         
         // Clear existing content
         blogGrid.innerHTML = '';
         
         if (!posts || posts.length === 0) {
-            console.error('No blog posts found in API response.');
-            blogGrid.innerHTML = '<p class="text-center" style="color: #ff3838;">No blog posts found. Create some in the admin panel or check if posts are published.</p>';
+            blogGrid.innerHTML = `
+                <div class="no-posts-message">
+                    <i class="fas fa-newspaper"></i>
+                    <p>No blog posts available yet.</p>
+                    <p>Check back soon for new content!</p>
+                </div>
+            `;
             return;
         }
         
-        // Display up to 3 posts
-        // const postsToShow = posts.slice(0, 3);
-        // Show all posts instead of just 3
-        const postsToShow = posts;
-        
-        postsToShow.forEach(post => {
-            // Create a fresh element instead of using innerHTML for better performance
+        // Render each post
+        posts.forEach(post => {
             const article = document.createElement('article');
             article.className = 'blog-card';
+            article.setAttribute('data-post-id', post.id);
+            
+            const categoryIcon = post.category ? post.category.icon || 'fa-folder' : 'fa-folder';
+            const categoryName = post.category ? post.category.name : 'Uncategorized';
+            const categorySlug = post.category ? post.category.slug : '';
             
             article.innerHTML = `
                 <div class="blog-card-inner">
                     <div class="blog-image">
                         <div class="blog-category">
-                            <i class="fas fa-folder"></i>
-                            <span>${post.category}</span>
+                            <i class="fas ${categoryIcon}"></i>
+                            <span>${categoryName}</span>
                         </div>
-                        <img src="${post.featured_image ? `/backend/static/uploads/${post.featured_image}` : 'assets/blog-placeholder.jpg'}" alt="${post.title}" loading="lazy">
+                        <img src="${post.featured_image ? `/backend/static/uploads/${post.featured_image}` : 'assets/blog-placeholder.jpg'}" 
+                             alt="${post.title}" 
+                             loading="lazy"
+                             onerror="this.src='assets/blog-placeholder.jpg'">
                         <div class="blog-overlay">
                             <div class="blog-meta">
                                 <span><i class="far fa-calendar"></i> ${post.created_at}</span>
@@ -298,12 +337,15 @@ async function renderBlogPosts() {
                     </div>
                     <div class="blog-content">
                         <h3>${post.title}</h3>
-                        <p>${post.summary}</p>
+                        <p>${post.summary || 'No summary available.'}</p>
                         <div class="blog-footer">
-                            <a href="blog-post.html?slug=${post.slug}" class="read-more">
+                            <a href="/blog/${post.slug}" class="read-more">
                                 Read Article
                                 <i class="fas fa-arrow-right"></i>
                             </a>
+                            <div class="blog-tags">
+                                <span>#${categorySlug}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -313,12 +355,14 @@ async function renderBlogPosts() {
         });
         
         console.log('Blog posts rendered successfully');
+        
     } catch (error) {
         console.error('Error rendering blog posts:', error);
         blogGrid.innerHTML = `
-            <div style="text-align: center; padding: 20px; color: #ff3838;">
-                <p><strong>Error loading blog posts:</strong> ${error.message}</p>
-                <p>Check console for more details</p>
+            <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>Failed to load blog posts.</p>
+                <p class="error-details">${error.message}</p>
             </div>
         `;
     }
@@ -559,3 +603,43 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.appendChild(debugButton);
     }
 });
+
+// Add styles for loading and error states
+const style = document.createElement('style');
+style.textContent = `
+    .loading-spinner {
+        text-align: center;
+        padding: 40px;
+        color: #39ff14;
+        font-size: 1.2em;
+    }
+    
+    .no-posts-message {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+    }
+    
+    .no-posts-message i {
+        font-size: 3em;
+        color: #39ff14;
+        margin-bottom: 20px;
+    }
+    
+    .error-message {
+        text-align: center;
+        padding: 40px;
+        color: #ff3838;
+    }
+    
+    .error-message i {
+        font-size: 3em;
+        margin-bottom: 20px;
+    }
+    
+    .error-details {
+        font-size: 0.9em;
+        color: #666;
+    }
+`;
+document.head.appendChild(style);
